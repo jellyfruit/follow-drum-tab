@@ -51,7 +51,7 @@ test('validation catches gaps and bad patterns', () => {
   assert.ok(errs.some((e) => e.includes('zzz')), errs.join('|'));
 });
 test('timemap linear + calibrate round trip', () => {
-  const c = F.calibrate(20, 50.5, 68, 170.5);
+  const c = F.calibrate(80, 50.5, 272, 170.5);
   const tm = F.makeTimeMap({ bpm: c.bpm, firstBeatSec: c.firstBeatSec });
   assert.ok(Math.abs(tm.beatAt(50.5) - 80) < 1e-9);
   assert.ok(Math.abs(tm.beatAt(170.5) - 272) < 1e-9);
@@ -83,6 +83,22 @@ test('engrave: eighths beamed per beat, quarter rests', () => {
   assert.deepStrictEqual(bb.chords.map((c) => c.step + ':' + c.dur), ['4:4', '12:4']);
 });
 
+test('2/4 bar shifts later beats by 2', () => {
+  const s = JSON.parse(JSON.stringify(tiny));
+  s.bars = [{ n: 1, use: 'a' }, { n: 2, beats: 2, p: ['--------', 'x-x-x-x-', '--------', '----x---', '--------', 'x-------'] }, { n: 3, use: 'a' }];
+  s.form = [{ from: 1, to: 3 }]; s.multiRest = [];
+  assert.deepStrictEqual(F.validate(s), []);
+  const m = F.prepare(s);
+  assert.deepStrictEqual(m.play.map((p) => p.startBeat), [0, 4, 6]);
+  assert.strictEqual(m.totalBeats, 10);
+  assert.strictEqual(F.playAt(m, 5.9).printedN, 2);
+  assert.strictEqual(F.playAt(m, 6).printedN, 3);
+  assert.ok(m.events.some((e) => e.printedN === 3 && e.beat === 6));
+  assert.strictEqual(F.engraveBar(m.printed[2].cells).chords.length, 4);
+  const bad = JSON.parse(JSON.stringify(s)); bad.bars[1].p[0] = '----------------';
+  assert.ok(F.validate(bad).some((e) => e.includes('2 拍')));
+});
+
 // ---- golden test on the real sample, if present ----
 const samplePath = process.argv[2] || path.join(__dirname, '..', 'samples', 'dance-monkey.json');
 if (fs.existsSync(samplePath)) {
@@ -97,8 +113,31 @@ if (fs.existsSync(samplePath)) {
   test('length 212.2 s at 95 bpm', () => assert.strictEqual(((m.totalBeats * 60) / 95).toFixed(1), '212.2'));
   test('cues at play index 20, 44, 68', () => assert.deepStrictEqual(m.cues.map((c) => c.playIndex), [20, 44, 68]));
   test('51 layout units (multi-rests 1-8, 11-12, 59-60 collapsed) like the PDF', () => assert.strictEqual(m.units.length, 51));
+  test('default rows: 4 slots each, last row 3', () => assert.deepStrictEqual(m.rows.map((r) => r.length), [4,4,4,4,4,4,4,4,4,4,4,4,3]));
+  test('Pre-Chorus is not a chorus', () => assert.ok(!m.sections.find((s) => s.name === 'Pre-Chorus').chorus));
   test('bar 31 is a whole note', () => assert.ok(F.engraveBar(m.printed[31].cells).whole));
 } else {
   console.log('(golden test skipped: samples/dance-monkey.json not found)');
+}
+const djoPath = path.join(__dirname, '..', 'samples', 'end-of-beginning.json');
+if (!process.argv[2] && fs.existsSync(djoPath)) {
+  console.log('golden: end-of-beginning.json');
+  const m = F.prepare(JSON.parse(fs.readFileSync(djoPath, 'utf8')));
+  test('53 play bars (one is 2/4) = 210 beats', () => {
+    assert.strictEqual(m.play.length, 53);
+    assert.strictEqual(m.totalBeats, 210);
+  });
+  test('length about 2:38 at 80 bpm', () => assert.strictEqual(((m.totalBeats * 60) / 80).toFixed(1), '157.5'));
+  test('bar after the 2/4 bar starts on beat 2 of a 4-beat grid', () => {
+    const b19 = m.play.find((p) => p.printedN === 19);
+    assert.strictEqual(b19.startBeat % 4, 2);
+  });
+  test('rows follow the PDF (1|4|3|4|4|2|4|4|3|5|3 slots)', () => assert.deepStrictEqual(m.rows.map((r) => r.length), [1, 4, 3, 4, 4, 2, 4, 4, 3, 5, 3]));
+  test('Last Chorus counts as a chorus, Pre-Chorus would not', () => assert.ok(m.sections.find((s) => s.name === 'Last Chorus').chorus));
+  test('last chorus: drums out 3 bars, enter on bar 33 beat 4', () => {
+    const e = m.events.find((x) => x.printedN === 33);
+    assert.strictEqual(e.step, 12);
+    assert.ok(e.afterRest);
+  });
 }
 console.log(`${passed} passed`);

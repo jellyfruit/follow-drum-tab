@@ -42,7 +42,7 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 
 /* sections */
 #sections{display:flex;gap:6px;min-width:0}
-#sections button{flex:1 1 0;min-width:44px;border-radius:12px;font-size:15px;font-weight:700;color:#1b1b28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;opacity:.75;border:3px solid transparent}
+#sections button{flex:1 1 0;min-width:64px;border-radius:12px;font-size:15px;font-weight:700;color:#1b1b28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;opacity:.75;border:3px solid transparent}
 #sections button.on{opacity:1;border-color:#fff}
 
 /* controls */
@@ -197,9 +197,10 @@ function seekBeat(b, keepLoop) {
   if (!keepLoop) loopSec = null;
 }
 function sectionAt(beat) {
-  const pi = Math.max(0, Math.floor(beat / 4 + 1e-6));
+  const pi = F.playAt(model, Math.max(0, beat)).playIndex;
   return model.sections.find((s) => pi >= s.start && pi < s.end) || null;
 }
+const preroll = (playIndex) => F.barStartBeat(model, playIndex - 1); // start one bar early
 function play() {
   if (!model) return;
   if (nowBeat() >= model.totalBeats) seekBeat(0);
@@ -243,8 +244,8 @@ function buildScore(m) {
   const geom = {}, rowTops = [];
   const repStart = new Map(m.repeats.map((r) => [r.from, r]));
   const repEnd = new Map(m.repeats.map((r) => [r.to, r]));
-  const rows = [];
-  for (let i = 0; i < m.units.length; i += 4) rows.push(m.units.slice(i, i + 4));
+  const rows = m.rows;
+  let gi = -1;
   o.push('<rect id="curBar" class="cur" x="0" y="0" width="0" height="0" rx="6"/>');
 
   rows.forEach((units, r) => {
@@ -253,16 +254,22 @@ function buildScore(m) {
     rowTops.push(top);
     for (let k = 0; k < 5; k++) o.push(`<line class="sl" x1="8" x2="${SVG_W - 6}" y1="${y0 + k * SP}" y2="${y0 + k * SP}"/>`);
     o.push(`<rect class="ink" x="14" y="${Y(7)}" width="3.5" height="${Y(3) - Y(7)}"/><rect class="ink" x="21" y="${Y(7)}" width="3.5" height="${Y(3) - Y(7)}"/>`);
-    o.push(`<text class="ts" x="38" y="${Y(6) + 7}">4</text><text class="ts" x="38" y="${Y(2) + 7}">4</text>`);
+    const rowBeats = m.printed[units[0].n].beats;
+    o.push(`<text class="ts" x="38" y="${Y(6) + 7}">${rowBeats}</text><text class="ts" x="38" y="${Y(2) + 7}">4</text>`);
     if (r === 0) o.push(`<text class="tempo" x="64" y="${top + 4}">♩ = ${esc(m.song.bpm)}</text>`);
     const uw = (SVG_W - 6 - CLEF_W) / units.length;
 
     units.forEach((u, ui) => {
-      const gi = r * 4 + ui;
+      gi++;
       const x0 = CLEF_W + ui * uw, x1 = x0 + uw;
       const pb = m.printed[u.n];
       const rs = repStart.get(u.n), re = repEnd.get(u.last);
-      const padL = rs ? 30 : 18, padR = re ? 18 : 10;
+      const meterChange = ui > 0 && m.printed[u.n - 1] && m.printed[u.n - 1].beats !== pb.beats;
+      const padL = (rs ? 30 : 18) + (meterChange ? 22 : 0), padR = re ? 18 : 10;
+      if (meterChange) {
+        const tx = x0 + (rs ? 30 : 14);
+        o.push(`<text class="ts" x="${tx}" y="${Y(6) + 7}">${pb.beats}</text><text class="ts" x="${tx}" y="${Y(2) + 7}">4</text>`);
+      }
       const nx0 = x0 + padL, nx1 = x1 - padR;
       if (pb.sectionStart) o.push(`<text class="sec" x="${x0 + 4}" y="${y0 - 50}">${esc(pb.section)}</text>`);
       o.push(`<text class="bn" x="${x0 + 3}" y="${y0 - 8}">${u.n}</text>`);
@@ -275,7 +282,7 @@ function buildScore(m) {
       } else {
         const eg = F.engraveBar(pb.cells);
         if (eg.empty) o.push(`<rect class="ink" x="${(x0 + x1) / 2 - 8}" y="${Y(6)}" width="16" height="6"/>`);
-        else drawBar(o, eg, u.n, nx0, nx1, Y);
+        else drawBar(o, eg, u.n, nx0, nx1, Y, pb.beats * 4);
       }
 
       // left repeat sign
@@ -303,8 +310,8 @@ function buildScore(m) {
   return { svg: o.join(''), geom, rowTops, height };
 }
 
-function drawBar(o, eg, n, nx0, nx1, Y) {
-  const sx = (s) => nx0 + 6 + (s / 16) * (nx1 - nx0 - 6);
+function drawBar(o, eg, n, nx0, nx1, Y, steps) {
+  const sx = (s) => nx0 + 6 + (s / steps) * (nx1 - nx0 - 6);
   const groups = new Map();
   const stems = [];
   for (const c of eg.chords) {
@@ -386,7 +393,7 @@ function renderSections() {
     b.style.flexGrow = String(s.end - s.start);
     b.textContent = (s.chorus ? '⭐ ' : '') + (s.name || '—');
     b.dataset.i = i;
-    b.onclick = () => { seekBeat((s.start - 1) * 4); loopSec = s; draw(true); }; // 1-bar pre-roll; loop targets this section
+    b.onclick = () => { seekBeat(preroll(s.start)); loopSec = s; draw(true); }; // 1-bar pre-roll; loop targets this section
     nav.appendChild(b);
   });
 }
@@ -403,19 +410,19 @@ function draw(force) {
   // loop the section we were in when the loop started (or last jumped to)
   if (loopOn) {
     if (!loopSec) loopSec = sectionAt(beat);
-    if (playing && loopSec && beat >= loopSec.end * 4) { seekBeat((loopSec.start - 1) * 4, true); beat = nowBeat(); }
+    if (playing && loopSec && beat >= loopSec.endBeat) { seekBeat(preroll(loopSec.start), true); beat = nowBeat(); }
   }
   if (playing && beat >= total) { pause(); seekBeat(total); showDone(); beat = total; }
 
   // metronome
   const bi = Math.floor(beat);
-  if (playing && lastBeatInt !== null && bi !== lastBeatInt && bi >= 0) click(bi % 4 === 0);
+  if (playing && lastBeatInt !== null && bi !== lastBeatInt && bi >= 0) click(F.playAt(model, bi).startBeat === bi);
   lastBeatInt = bi;
 
-  const pi = Math.max(0, Math.min(model.play.length - 1, Math.floor(beat / 4)));
-  const pb = model.play[pi];
+  const pb = F.playAt(model, Math.max(0, beat));
+  const pi = pb.playIndex;
   const g = score.geom[pb.printedN];
-  const frac = Math.max(0, Math.min(1, beat / 4 - pi));
+  const frac = Math.max(0, Math.min(1, (beat - pb.startBeat) / pb.beats));
 
   // current bar box + cursor
   if (pi !== lastPlayIndex || force) {
@@ -435,9 +442,9 @@ function draw(force) {
   score.cursor.setAttribute('y1', g.y0 - 14); score.cursor.setAttribute('y2', g.y0 + 4 * SP + 14);
 
   // light up notes just played in this bar (for half a beat)
-  const stepNow = frac * 16;
+  const steps = pb.beats * 4, stepNow = frac * steps;
   const want = new Set();
-  for (let s = 0; s < 16; s++) {
+  for (let s = 0; s < steps; s++) {
     if (s <= stepNow + 1e-6 && stepNow - s < 2 && beat >= 0) {
       const k = pb.printedN + ':' + s;
       if (score.chords.has(k)) want.add(k);
@@ -498,7 +505,7 @@ function loadSong(text, save) {
   let m;
   try { m = F.prepare(song); } catch (e) { return { ok: false, msg: (e.errors || [e.message]).join('\n') }; }
   model = m;
-  tm = F.makeTimeMap(song);
+  tm = F.makeTimeMap(song, m);
   if (save) { try { localStorage.setItem(STORE, text); } catch (e) {} }
   $('#empty').style.display = 'none';
   setText('hudTitle', [song.title, song.artist].filter(Boolean).join(' · '));
@@ -520,10 +527,10 @@ $('#svg').addEventListener('click', (e) => { // tap a bar to jump there (paused 
   const p = pt.matrixTransform(e.currentTarget.getScreenCTM().inverse());
   for (const [n, g] of Object.entries(score.geom)) {
     if (p.x >= g.x0 && p.x < g.x1 && p.y >= g.y0 - 60 && p.y < g.y0 + 70) {
-      const cur = Math.floor(nowBeat() / 4);
+      const cur = F.playAt(model, Math.max(0, nowBeat())).playIndex;
       const cands = model.play.filter((pb) => pb.printedN === g.unit.n);
       const pick = cands.find((pb) => pb.playIndex >= cur) || cands[0];
-      if (pick) { seekBeat(pick.playIndex * 4); draw(true); }
+      if (pick) { seekBeat(pick.startBeat); draw(true); }
       return;
     }
   }
@@ -562,7 +569,7 @@ $('#numBpm').onchange = (e) => {
   if (!model) return;
   const v = +e.target.value; if (!(v >= 30 && v <= 300)) return;
   const b = nowBeat();
-  model.song.bpm = v; tm = F.makeTimeMap(model.song);
+  model.song.bpm = v; tm = F.makeTimeMap(model.song, model);
   baseSec = tm.timeAt(b); basePerf = performance.now();
 };
 window.addEventListener('resize', () => draw(true));
