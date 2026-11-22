@@ -59,11 +59,11 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 #pass:empty{display:none}
 #kitBox{background:var(--panel);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:6px;flex:1 1 0;min-height:110px}
 #kit{width:100%;height:100%;max-height:230px}
-#status{background:var(--panel);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;flex:0 0 132px;text-align:center;padding:6px}
-#statusBig{font-size:58px;font-weight:800;line-height:1}
-#statusSmall{font-size:15px;color:var(--mut);margin-top:6px}
-#dots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:220px;margin-top:8px}
-#dots i{width:16px;height:16px;border-radius:50%;background:var(--HH);display:block}
+#bigCount{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:min(46vh,300px);font-weight:900;line-height:1;color:rgba(255,216,77,.42);opacity:0;transition:opacity .12s}
+#bigCount.on{opacity:1}
+#bigCount.go{color:rgba(255,154,60,.5);font-size:min(30vh,200px)}
+#notice{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(20,24,40,.92);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:10px 16px;font-size:16px;max-width:90%;text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}
+#notice.on{opacity:1}
 #sections{display:flex;gap:6px;min-width:0}
 #sections button{flex:1 1 0;min-width:64px;border-radius:12px;font-size:15px;font-weight:700;color:#1b1b28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;opacity:.75;border:3px solid transparent}
 #sections button.on{opacity:1;border-color:#fff}
@@ -72,10 +72,12 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 .big small{font-size:13px;color:var(--mut);margin-top:6px}
 #btnPlay{flex:1.6;background:var(--acc);color:#2a1505;font-size:46px}
 #btnLoop.on{background:#3a6b5a;outline:3px solid var(--T1)}
-#speeds{display:flex;gap:6px;background:var(--panel2);border-radius:20px;padding:6px;flex:1.4}
-#speeds button{flex:1;border-radius:14px;font-size:34px;opacity:.45}
-#speeds button.on{opacity:1;background:#454d78}
-#speeds button[hidden]{display:none}
+#speeds{display:flex;gap:6px;background:var(--panel2);border-radius:20px;padding:6px;flex:1.5;align-items:stretch}
+#speeds button{border-radius:14px;font-size:36px;font-weight:700;background:#3a416a;min-width:64px}
+#speeds button:disabled{opacity:.3}
+#spdVal{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;border-radius:14px;background:#454d78}
+#spdIcon{font-size:26px}
+#spdNum{font-size:26px;font-weight:800;margin-top:4px;color:#fff}
 .gear{position:relative;min-width:90px;background:transparent;border:2px dashed var(--line);color:var(--mut);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;line-height:1;padding:6px 10px}
 .gear small{font-size:12px;margin-top:4px}
 .gear .ring{position:absolute;inset:-2px;border-radius:20px;border:4px solid var(--acc);clip-path:inset(0 100% 0 0);pointer-events:none}
@@ -95,7 +97,7 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 .mr{font:800 26px Georgia,serif;fill:#e8ecf8;text-anchor:middle}
 .rep{font:800 16px Georgia,serif;fill:var(--yel);text-anchor:end}
 .cur{fill:rgba(255,216,77,.13);stroke:rgba(255,216,77,.5);stroke-width:1.5}
-#cursor{stroke:var(--yel);stroke-width:3}
+#cursor{fill:rgba(255,216,77,.3)}
 .head,.xh{transform-box:fill-box;transform-origin:center;transition:transform .08s}
 .xh{stroke-width:2.4;fill:none}
 .chord.lit .head{stroke:#fff;stroke-width:2.5;transform:scale(1.45)}
@@ -148,12 +150,12 @@ body.syncing #ytBox{position:fixed;z-index:21;left:var(--pad-l);top:calc(var(--p
   #hud{gap:8px}#hudBar{font-size:16px}#hudSec{font-size:14px}#hudTitle{display:none}
   #main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 120px}
   #side{flex-direction:row}#ytBox{height:100%}#pass{display:none}
-  #kitBox{min-height:0}#status{flex:1 1 0}#statusBig{font-size:40px}
+  #kitBox{min-height:0}
   #sections button{min-width:48px;font-size:12px}
   #controls{flex-wrap:wrap;gap:6px}
   .big{min-width:0;flex:1;height:64px;font-size:26px}.big small{font-size:11px;margin-top:3px}
   #btnPlay{flex:1.6;font-size:34px}.gear{min-width:0}
-  #speeds{order:5;flex:1 1 100%;height:56px}#speeds button{font-size:26px}
+  #speeds{order:5;flex:1 1 100%;height:60px}#speeds button{font-size:28px}#spdIcon{font-size:18px}#spdNum{font-size:20px}
   body.syncing #ytBox{width:calc(100vw - 20px);max-height:none}
   #sync{align-items:flex-end}#sync .sheet{width:100%;height:58vh}
 }
@@ -181,7 +183,7 @@ body.syncing #ytBox{position:fixed;z-index:21;left:var(--pad-l);top:calc(var(--p
     <span id="hudSpeed">🐇</span>
   </header>
   <section id="main">
-    <div id="score"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div id="score"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg><div id="bigCount"></div><div id="notice"></div></div>
     <aside id="side">
       <div id="ytBox"></div>
       <div id="pass"></div>
@@ -195,7 +197,6 @@ body.syncing #ytBox{position:fixed;z-index:21;left:var(--pad-l);top:calc(var(--p
           <g class="drum" data-lane="BD"><ellipse cx="118" cy="164" rx="40" ry="21" fill="var(--BD)" stroke="var(--BD)"/><text x="118" y="168">Kick</text></g>
         </svg>
       </div>
-      <div id="status"><div id="statusBig"></div><div id="dots"></div><div id="statusSmall"></div></div>
     </aside>
   </section>
   <nav id="sections"></nav>
@@ -204,9 +205,9 @@ body.syncing #ytBox{position:fixed;z-index:21;left:var(--pad-l);top:calc(var(--p
     <button class="big" id="btnPlay" aria-label="Play">▶</button>
     <button class="big" id="btnLoop" aria-label="Repeat this part">🔁<small>Again</small></button>
     <div id="speeds">
-      <button data-level="0" aria-label="Slow">🐢</button>
-      <button data-level="1" aria-label="Medium">🚶</button>
-      <button data-level="2" class="on" aria-label="Full speed">🐇</button>
+      <button id="spdDown" aria-label="Slower">−</button>
+      <button id="spdVal" aria-label="Speed (tap for this level's speed)"><span id="spdIcon">🐇</span><span id="spdNum">1×</span></button>
+      <button id="spdUp" aria-label="Faster">+</button>
     </div>
     <button class="gear" id="songGear" aria-label="Grown-ups (hold)"><span class="ring"></span>⚙<small>hold</small></button>
   </footer>
@@ -298,6 +299,13 @@ const fmtTime = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60))
 function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); }
 function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
 function msg(el, text, cls) { el.textContent = text; el.className = cls || ''; }
+let noticeTimer = null;
+function notice(text, ms) {
+  const n = $('#notice'); n.textContent = text; n.classList.add('on');
+  clearTimeout(noticeTimer); noticeTimer = setTimeout(() => n.classList.remove('on'), ms || 4000);
+}
+const fmtRate = (r) => `${Math.round(r * 100) / 100}×`;
+const rateIcon = (r) => (r < 0.8 ? '🐢' : r < 0.99 ? '🚶' : '🐇');
 const levelIcon = (p) => (p && p.graduated ? '👑' : F.LEVELS[(p && p.level) || 0].icon);
 const starsTxt = (p) => (p && p.graduated ? '⭐⭐⭐' : '⭐'.repeat((p && p.stars) || 0) + '☆'.repeat(3 - ((p && p.stars) || 0)));
 
@@ -419,7 +427,7 @@ function setupClock() {
   if (rec.youtubeId) {
     clock = new C.YouTubeClock($('#ytBox'), rec.youtubeId, {
       onReady: (c) => { applyRates(c.rates()); updateLenCheck(); goToStart(); },
-      onError: (m) => { setText('statusSmall', m); msg($('#songMsg'), m, 'err'); },
+      onError: (m) => { notice(m, 8000); msg($('#songMsg'), m, 'err'); },
       onRate: (r) => { rate = r; updateSpeedUI(); },
     });
   } else {
@@ -435,15 +443,30 @@ function setupClock() {
   goToStart();
 }
 
+// Speeds the +/- buttons step through: 0.50–1.25 in 0.05 steps, limited to what the player supports.
+let rateSteps = [0.5, 0.75, 1];
 function applyRates(avail) {
   const has = (r) => avail.some((a) => Math.abs(a - r) < 0.001);
+  const fine = [];
+  for (let r = 0.5; r <= 1.2501; r += 0.05) fine.push(Math.round(r * 100) / 100);
+  rateSteps = [...new Set(fine.filter(has).concat(avail.filter((a) => a >= 0.5 && a <= 1.25)))].sort((a, b) => a - b);
+  if (!rateSteps.includes(1)) rateSteps.push(1);
   const slow = has(0.75) ? 0.75 : 0.5;
   const mid = [0.85, 0.9, 0.8].find(has) || null;
   levelRates = [slow, mid, 1];
-  $('#speeds [data-level="1"]').hidden = !mid;
-  let lv = rec.progress.graduated ? 2 : rec.progress.level;
-  if (lv === 1 && !mid) lv = 2;
-  setRate(levelRates[lv]);
+  setRate(levelRate());
+}
+function levelRate() {
+  const p = rec.progress;
+  let lv = p.graduated ? 2 : p.level;
+  if (lv === 1 && !levelRates[1]) lv = 2;
+  return levelRates[lv];
+}
+function stepRate(dir) {
+  const i = rateSteps.findIndex((r) => Math.abs(r - rate) < 0.001);
+  const cur = i >= 0 ? i : rateSteps.findIndex((r) => r > rate) - (dir > 0 ? 1 : 0);
+  const next = rateSteps[Math.max(0, Math.min(rateSteps.length - 1, cur + dir))];
+  if (next) setRate(next);
 }
 function setRate(r) {
   if (!clock) return;
@@ -452,8 +475,11 @@ function setRate(r) {
   updateSpeedUI();
 }
 function updateSpeedUI() {
-  document.querySelectorAll('#speeds button').forEach((b) => b.classList.toggle('on', Math.abs((levelRates[+b.dataset.level] || -1) - rate) < 0.001));
-  $('#hudSpeed').textContent = rate < 0.8 ? '🐢' : rate < 0.99 ? '🚶' : '🐇';
+  $('#spdIcon').textContent = rateIcon(rate);
+  $('#spdNum').textContent = fmtRate(rate);
+  $('#hudSpeed').textContent = `${rateIcon(rate)} ${fmtRate(rate)}`;
+  $('#spdDown').disabled = !(rateSteps[0] < rate - 0.001);
+  $('#spdUp').disabled = !(rateSteps[rateSteps.length - 1] > rate + 0.001);
 }
 
 /* ---------------- time ---------------- */
@@ -477,13 +503,13 @@ function sectionAt(beat) {
 
 function play() {
   if (!model || !clock) return;
-  if (clock.kind === 'youtube' && !clock.ready) { setText('statusSmall', 'Video is loading…'); return; }
+  if (clock.kind === 'youtube' && !clock.ready) { notice('Video is loading…'); return; }
   if (finished || nowBeat() >= model.totalBeats) goToStart();
   ensureAudio();
   if (!run && nowBeat() <= model.firstHitBeat + 0.01) run = { minRate: rate };
   clock.play();
   if (clock.kind === 'internal') $('#btnPlay').textContent = '⏸';
-  if (clock.kind === 'youtube') { const c = clock; setTimeout(() => { if (clock === c && !c.playing()) setText('statusSmall', 'If nothing happens, tap the video once.'); }, 1800); }
+  if (clock.kind === 'youtube') { const c = clock; setTimeout(() => { if (clock === c && !c.playing()) notice('If nothing happens, tap the video once.', 6000); }, 1800); }
 }
 function pause() { if (clock) clock.pause(); $('#btnPlay').textContent = '▶'; }
 
@@ -572,7 +598,7 @@ function buildScore(m) {
       }
     });
   });
-  o.push('<line id="cursor" x1="0" x2="0" y1="0" y2="0"/>');
+  o.push('<rect id="cursor" x="0" y="0" width="16" height="0" rx="8"/>');
   const height = TOP + rows.length * ROW_H + 10;
   return { svg: o.join(''), geom, rowTops, height };
 }
@@ -671,7 +697,7 @@ async function finish() {
   finished = true;
   pause();
   const p = rec.progress;
-  const need = levelRates[p.graduated ? 2 : p.level] || 1;
+  const need = levelRate() || 1;
   let big = '🎉', small = 'Well done!';
   if (run && run.minRate >= need - 0.001) {
     const r = F.awardStar(p, !!levelRates[1]);
@@ -723,8 +749,8 @@ function draw(force) {
   let cx;
   if (g.unit.type === 'multi') cx = g.x0 + 16 + ((pb.printedN - g.unit.n + frac) / g.unit.count) * (g.x1 - g.x0 - 32);
   else cx = g.nx0 + 6 + frac * (g.nx1 - g.nx0 - 6);
-  score.cursor.setAttribute('x1', cx); score.cursor.setAttribute('x2', cx);
-  score.cursor.setAttribute('y1', g.y0 - 14); score.cursor.setAttribute('y2', g.y0 + 4 * SP + 14);
+  score.cursor.setAttribute('x', cx - 8); score.cursor.setAttribute('width', 16);
+  score.cursor.setAttribute('y', g.y0 - 16); score.cursor.setAttribute('height', 4 * SP + 32);
 
   const steps = pb.beats * 4, stepNow = frac * steps;
   const want = new Set();
@@ -754,18 +780,14 @@ function draw(force) {
     d.classList.toggle('hit', st.flash.includes(l));
     d.classList.toggle('soon', !st.flash.includes(l) && soon.includes(l));
   });
-  let big = '🥁', small = hudCache.statusSmallSticky || '', dots = 0;
-  if (st.mode === 'rest') { big = '😴'; dots = st.barsLeft; small = st.entry ? `Play at bar ${st.entry.printedN}` : ''; }
-  else if (st.mode === 'countdown') { big = String(st.count); small = 'Get ready'; }
-  else if (st.mode === 'go') { big = 'Go!'; small = ''; }
-  else if (st.mode === 'end') { big = '🏁'; small = ''; }
-  if (playingNow) hudCache.statusSmallSticky = '';
-  setText('statusBig', big);
-  if (st.mode !== 'play' || playingNow) setText('statusSmall', small);
-  const dotsKey = 'd' + dots;
-  if (hudCache.dots !== dotsKey) {
-    hudCache.dots = dotsKey;
-    $('#dots').innerHTML = dots > 0 && dots <= 12 ? '<i></i>'.repeat(dots) : dots > 12 ? `<span style="font-size:20px">${dots} bars</span>` : '';
+  // big, see-through countdown in the middle of the score
+  const countTxt = st.mode === 'countdown' ? String(st.count) : st.mode === 'go' ? 'Go!' : '';
+  if (hudCache.count !== countTxt) {
+    hudCache.count = countTxt;
+    const bc = $('#bigCount');
+    if (countTxt) bc.textContent = countTxt;
+    bc.classList.toggle('on', !!countTxt);
+    bc.classList.toggle('go', countTxt === 'Go!');
   }
   if (syncing) setText('syncBar', beat < 0 ? 'Before bar 1' : `Bar ${pb.printedN} · beat ${Math.floor(beat - pb.startBeat) + 1}` + (pb.totalPasses > 1 ? ` · round ${pb.pass}` : ''));
 }
@@ -775,7 +797,9 @@ function frame() { draw(false); requestAnimationFrame(frame); }
 $('#btnPlay').onclick = () => (clock && clock.playing() ? pause() : play());
 $('#btnStart').onclick = () => { if (!model) return; goToStart(); draw(true); };
 $('#btnLoop').onclick = () => { loopOn = !loopOn; loopSec = null; run = null; $('#btnLoop').classList.toggle('on', loopOn); };
-document.querySelectorAll('#speeds button').forEach((b) => (b.onclick = () => { const r = levelRates[+b.dataset.level]; if (r) setRate(r); }));
+$('#spdDown').onclick = () => stepRate(-1);
+$('#spdUp').onclick = () => stepRate(1);
+$('#spdVal').onclick = () => setRate(levelRate()); // back to the speed of the current level
 $('#btnBack').onclick = () => { pause(); if (clock) clock.destroy(); clock = null; model = null; rec = null; show('library'); renderLibrary(); };
 $('#svg').addEventListener('click', (e) => {
   if (!model) return;

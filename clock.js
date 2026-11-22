@@ -14,7 +14,7 @@
     pause() { if (!this.on) return; this.base = this.time(); this.on = false; this.onstate && this.onstate('paused'); }
     seek(sec) { this.base = sec; this.basePerf = performance.now(); }
     setRate(r) { this.base = this.time(); this.basePerf = performance.now(); this.rate = r; return r; }
-    rates() { return [0.5, 0.75, 0.85, 0.9, 1]; }
+    rates() { const r = []; for (let x = 0.5; x <= 1.2501; x += 0.05) r.push(Math.round(x * 100) / 100); return r; }
     duration() { return 0; }
     destroy() { this.pause(); }
   }
