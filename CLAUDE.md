@@ -267,7 +267,7 @@ for entry in form:
 
 1. 把老師的 PDF 傳給 Claude（聊天），說「轉成鼓譜卡拉OK 的 JSON」。Claude 依第 7 節規則輸出 JSON、**不確定清單**、展開後小節數與估計長度。
 2. 對照 YouTube 影片長度，差太多就請 Claude 重看反覆次數。
-3. App →「加歌」→ 貼上 JSON（App 驗證格式，錯誤用中文說明）。
+3. App → 長按 ⚙ →「📂 從檔案／Google Drive 選譜」（iPad「檔案」App 的 Google Drive 位置，需安裝 Google Drive App），或貼上 JSON。App 驗證格式，錯誤用中文說明。家長習慣把 Claude 轉好的 .json 存到 Google Drive。
 4. 貼 YouTube 連結。
 5. 對拍：照 `cues` 提示，聽到「副歌開始」時按一下，至少前後各一個；微調到節拍器嗶聲和歌的鼓聲對齊。
 6. 存進曲庫。之後練習時覺得哪裡怪，記下小節號問 Claude 或老師。

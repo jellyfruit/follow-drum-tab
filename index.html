@@ -171,12 +171,14 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 <div class="overlay" id="parent">
   <div class="sheet">
     <h2>家長區</h2>
-    <div class="mut">把 Claude 轉好的譜資料（JSON）整段貼在下面，按「載入」。</div>
+    <div class="row">
+      <button class="btn pri" id="btnPick" style="font-size:18px;padding:14px 20px">📂 從檔案／Google Drive 選譜</button>
+      <input type="file" id="file" hidden>
+    </div>
+    <div class="mut">選了會直接載入。iPad 上點按鈕後，在「瀏覽」裡選 Google Drive（需要先裝 Google Drive App）。<br>或把譜資料（JSON）整段貼在下面，按「載入貼上的內容」。</div>
     <textarea id="ta" spellcheck="false" placeholder='{ "version": 2, "title": "…", "bars": [ … ] }'></textarea>
     <div class="row">
-      <button class="btn pri" id="btnLoad">載入</button>
-      <button class="btn" id="btnPick">從檔案選…</button>
-      <input type="file" id="file" accept=".json,application/json,text/plain" hidden>
+      <button class="btn" id="btnLoad">載入貼上的內容</button>
       <span id="loadMsg"></span>
     </div>
     <div class="row">
@@ -520,7 +522,7 @@ function showDone() {
 /* ---------------- loading songs ---------------- */
 function loadSong(text, save) {
   let song;
-  try { song = JSON.parse(text); } catch (e) { return { ok: false, msg: '這不是有效的 JSON。請確認整段都有複製到（從 { 到 }）。' }; }
+  try { song = JSON.parse(String(text).replace(/^\uFEFF/, '').trim()); } catch (e) { return { ok: false, msg: '這不是有效的譜資料（JSON）。若是貼上的，請確認整段都有複製到（從 { 到 }）；若是檔案，請確認選的是 Claude 給的 .json 檔。' }; }
   let m;
   try { m = F.prepare(song); } catch (e) { return { ok: false, msg: (e.errors || [e.message]).join('\n') }; }
   model = m;
@@ -580,7 +582,14 @@ $('#btnLoad').onclick = () => {
 $('#btnPick').onclick = () => $('#file').click();
 $('#file').onchange = async (e) => {
   const f = e.target.files[0]; if (!f) return;
-  $('#ta').value = await f.text();
+  try {
+    $('#ta').value = (await f.text()).replace(/^\uFEFF/, '').trim();
+  } catch (err) {
+    $('#loadMsg').textContent = '讀不到這個檔案。若是 Google Drive 的檔案，請確認已下載到這台 iPad（有網路）。';
+    $('#loadMsg').className = 'err';
+    return;
+  }
+  e.target.value = '';
   $('#btnLoad').onclick();
 };
 $('#chkMet').onchange = (e) => { metOn = e.target.checked; };
