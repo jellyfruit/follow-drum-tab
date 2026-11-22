@@ -47,7 +47,7 @@ test('validation catches gaps and bad patterns', () => {
   const bad = JSON.parse(JSON.stringify(tiny));
   bad.bars[1].n = 4; bad.bars[1].use = 'zzz';
   const errs = F.validate(bad);
-  assert.ok(errs.some((e) => e.includes('缺少第 3')), errs.join('|'));
+  assert.ok(errs.some((e) => e.includes('Bars 3')), errs.join('|'));
   assert.ok(errs.some((e) => e.includes('zzz')), errs.join('|'));
 });
 test('timemap linear + calibrate round trip', () => {
@@ -96,7 +96,22 @@ test('2/4 bar shifts later beats by 2', () => {
   assert.ok(m.events.some((e) => e.printedN === 3 && e.beat === 6));
   assert.strictEqual(F.engraveBar(m.printed[2].cells).chords.length, 4);
   const bad = JSON.parse(JSON.stringify(s)); bad.bars[1].p[0] = '----------------';
-  assert.ok(F.validate(bad).some((e) => e.includes('2 拍')));
+  assert.ok(F.validate(bad).some((e) => e.includes('2 beats')));
+});
+
+test('stars: 3 per level, turtle -> walk -> rabbit -> crown', () => {
+  let p = F.newProgress(), ev = [];
+  for (let i = 0; i < 9; i++) { const r = F.awardStar(p, true); p = r.progress; ev.push(r.event); }
+  assert.deepStrictEqual(ev, ['star', 'star', 'levelup', 'star', 'star', 'levelup', 'star', 'star', 'graduate']);
+  assert.ok(p.graduated);
+  assert.strictEqual(F.awardStar(p, true).event, 'again');
+  let q = F.newProgress();
+  for (let i = 0; i < 3; i++) q = F.awardStar(q, false).progress;
+  assert.strictEqual(q.level, 2, 'skips walking level when 0.85 is not available');
+});
+test('cues default to section starts', () => {
+  const m = F.prepare(tiny);
+  assert.deepStrictEqual(m.cues.map((c) => [c.label, c.playIndex]), [['Chorus starts', 2]]);
 });
 
 // ---- golden test on the real sample, if present ----

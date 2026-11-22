@@ -8,12 +8,12 @@
   // Canonical lane order (top of staff to bottom).
   const LANES = ['CY', 'HH', 'T1', 'SN', 'FT', 'BD'];
   const LANE_INFO = {
-    CY: { name: '銅鈸', color: '#f5c542', pos: 10, x: true },
-    HH: { name: '踩鑔', color: '#4cd3e0', pos: 9, x: true },
-    T1: { name: '高嗵', color: '#6bd66b', pos: 7 },
-    SN: { name: '小鼓', color: '#ff5d5d', pos: 5 },
-    FT: { name: '低嗵', color: '#b583ff', pos: 3 },
-    BD: { name: '底鼓', color: '#ff9a3c', pos: 1 },
+    CY: { name: 'Crash', color: '#f5c542', pos: 10, x: true },
+    HH: { name: 'Hi-hat', color: '#4cd3e0', pos: 9, x: true },
+    T1: { name: 'Tom', color: '#6bd66b', pos: 7 },
+    SN: { name: 'Snare', color: '#ff5d5d', pos: 5 },
+    FT: { name: 'Floor tom', color: '#b583ff', pos: 3 },
+    BD: { name: 'Kick', color: '#ff9a3c', pos: 1 },
   };
   const STEPS = 16;
   const REST_GAP = 3.5; // beats of silence that count as "rest"
@@ -43,26 +43,26 @@
   const emptyCells = (steps) => LANES.map(() => new Array(steps).fill(0));
   const okRows = (rows, len) => Array.isArray(rows) && rows.length === 6 && rows.every((r) => typeof r === 'string' && r.length === len);
 
-  /* ---------- validation (messages in Traditional Chinese for the parent) ---------- */
+  /* ---------- validation (messages shown to the parent, in English) ---------- */
   function validate(song) {
     const errs = [];
-    if (!song || typeof song !== 'object') return ['不是有效的譜資料（需要 JSON 物件）。'];
-    if (!(typeof song.bpm === 'number' && song.bpm >= 30 && song.bpm <= 300)) errs.push('bpm 需要是 30–300 之間的數字。');
-    if (song.timeSig && song.timeSig !== '4/4') errs.push(`目前只支援 4/4 拍（這首是 ${song.timeSig}）。`);
-    if (song.grid && song.grid !== 16) errs.push(`目前只支援 16 格（十六分音符）網格（這首是 ${song.grid}）。`);
+    if (!song || typeof song !== 'object') return ['This is not song data (expected a JSON object).'];
+    if (!(typeof song.bpm === 'number' && song.bpm >= 30 && song.bpm <= 300)) errs.push('bpm must be a number between 30 and 300.');
+    if (song.timeSig && song.timeSig !== '4/4') errs.push(`Only 4/4 songs are supported for now (this one is ${song.timeSig}).`);
+    if (song.grid && song.grid !== 16) errs.push(`Only a 16-step grid is supported for now (this one is ${song.grid}).`);
     const lanes = song.lanes || LANES;
-    if (!Array.isArray(lanes) || lanes.length !== 6 || lanes.some((l) => !LANES.includes(l))) errs.push('lanes 需要是 6 個鼓的代號：CY HH T1 SN FT BD。');
+    if (!Array.isArray(lanes) || lanes.length !== 6 || lanes.some((l) => !LANES.includes(l))) errs.push('lanes must list 6 drums: CY HH T1 SN FT BD.');
 
     const pats = song.patterns || {};
     for (const [name, rows] of Object.entries(pats)) {
       const len = Array.isArray(rows) && typeof rows[0] === 'string' ? rows[0].length : 0;
       if (![8, 12, 16].includes(len) || !okRows(rows, len)) {
-        errs.push(`節奏型「${name}」需要 6 行、每行 16 個字元（2 拍小節 8 個、3 拍小節 12 個）。`);
+        errs.push(`Pattern "${name}" needs 6 rows of 16 characters (8 for a 2-beat bar, 12 for 3 beats).`);
       }
     }
 
     if (!Array.isArray(song.bars) || !song.bars.length) {
-      errs.push('缺少 bars（小節）。');
+      errs.push('Missing "bars".');
       return errs;
     }
     const bars = song.bars.slice().sort((a, b) => (a.n || 0) - (b.n || 0));
@@ -70,38 +70,38 @@
     for (const b of bars) {
       const to = b.to == null ? b.n : b.to;
       if (!isInt(b.n) || !isInt(to) || to < b.n) {
-        errs.push(`小節範圍有誤：n=${b.n} to=${b.to}`);
+        errs.push(`Bad bar range: n=${b.n} to=${b.to}`);
         continue;
       }
-      if (b.n !== expect) errs.push(b.n > expect ? `缺少第 ${expect}–${b.n - 1} 小節。` : `第 ${b.n} 小節重複定義。`);
+      if (b.n !== expect) errs.push(b.n > expect ? `Bars ${expect}–${b.n - 1} are missing.` : `Bar ${b.n} is defined twice.`);
       expect = to + 1;
       const beats = b.beats == null ? 4 : b.beats;
-      if (![2, 3, 4].includes(beats)) errs.push(`第 ${b.n} 小節的 beats 只能是 2、3 或 4。`);
+      if (![2, 3, 4].includes(beats)) errs.push(`Bar ${b.n}: beats must be 2, 3 or 4.`);
       if (!b.rest) {
         if (b.use != null) {
-          if (!pats[b.use]) errs.push(`第 ${b.n} 小節用了不存在的節奏型「${b.use}」。`);
-          else if (pats[b.use][0] && pats[b.use][0].length !== beats * 4) errs.push(`第 ${b.n} 小節是 ${beats} 拍，但節奏型「${b.use}」的長度不是 ${beats * 4} 格。`);
+          if (!pats[b.use]) errs.push(`Bar ${b.n} uses a pattern that does not exist: "${b.use}".`);
+          else if (pats[b.use][0] && pats[b.use][0].length !== beats * 4) errs.push(`Bar ${b.n} has ${beats} beats, but pattern "${b.use}" is not ${beats * 4} steps long.`);
         } else if (Array.isArray(b.p)) {
-          if (!okRows(b.p, beats * 4)) errs.push(`第 ${b.n} 小節的 p 需要 6 行、每行 ${beats * 4} 個字元（${beats} 拍）。`);
+          if (!okRows(b.p, beats * 4)) errs.push(`Bar ${b.n}: p needs 6 rows of ${beats * 4} characters (${beats} beats).`);
         } else {
-          errs.push(`第 ${b.n} 小節沒有音符內容（use 或 p），也沒有標成休止。`);
+          errs.push(`Bar ${b.n} has no notes (use or p) and is not marked as a rest.`);
         }
       }
     }
     const maxN = expect - 1;
 
     if (!Array.isArray(song.form) || !song.form.length) {
-      errs.push('缺少 form（演奏順序）。');
+      errs.push('Missing "form" (play order).');
     } else {
       song.form.forEach((f, i) => {
-        if (!isInt(f.from) || !isInt(f.to) || f.from < 1 || f.to > maxN || f.from > f.to) errs.push(`form 第 ${i + 1} 段範圍有誤（${f.from}–${f.to}，譜只有 1–${maxN}）。`);
-        if (f.times != null && !(isInt(f.times) && f.times >= 1)) errs.push(`form 第 ${i + 1} 段的 times 需要是正整數。`);
+        if (!isInt(f.from) || !isInt(f.to) || f.from < 1 || f.to > maxN || f.from > f.to) errs.push(`form entry ${i + 1} has a bad range (${f.from}–${f.to}; the score has bars 1–${maxN}).`);
+        if (f.times != null && !(isInt(f.times) && f.times >= 1)) errs.push(`form entry ${i + 1}: times must be a positive whole number.`);
       });
     }
 
-    if (song.rowBreaks != null && (!Array.isArray(song.rowBreaks) || song.rowBreaks.some((n) => !isInt(n) || n < 1 || n > maxN))) errs.push(`rowBreaks 需要是譜上的小節號（1–${maxN}）。`);
+    if (song.rowBreaks != null && (!Array.isArray(song.rowBreaks) || song.rowBreaks.some((n) => !isInt(n) || n < 1 || n > maxN))) errs.push(`rowBreaks must be bar numbers (1–${maxN}).`);
     for (const m of song.multiRest || []) {
-      if (!isInt(m.n) || !isInt(m.count) || m.count < 2) errs.push(`multiRest 有誤：n=${m.n} count=${m.count}`);
+      if (!isInt(m.n) || !isInt(m.count) || m.count < 2) errs.push(`Bad multiRest: n=${m.n} count=${m.count}`);
     }
     return errs;
   }
@@ -183,7 +183,7 @@
         if (hit.length) events.push({ beat: pb.startBeat + s / 4, lanes: hit, playIndex: pb.playIndex, printedN: pb.printedN, step: s });
       }
     }
-    // Mark entries after a rest (for "打！").
+    // Mark entries after a rest (for the "Go!" cue).
     for (let i = 0; i < events.length; i++) {
       const gap = i === 0 ? Infinity : events[i].beat - events[i - 1].beat;
       events[i].afterRest = gap >= REST_GAP;
@@ -203,10 +203,17 @@
     }
 
     const model = { song, maxN, printed, units, rows, repeats, play, events, sections, totalBeats: startBeat };
-    model.cues = (song.cues || []).map((c) => {
-      const playIndex = cueIndex(model, c.bar, c.pass || 1);
-      return { ...c, playIndex, beat: playIndex >= 0 ? play[playIndex].startBeat : null };
-    });
+    // Sync cues: from the JSON, or else the start of every named section after the first.
+    const rawCues = song.cues && song.cues.length
+      ? song.cues
+      : sections.filter((s, i) => i > 0 && s.name).map((s) => ({ label: `${s.name} starts`, bar: play[s.start].printedN, pass: play[s.start].pass }));
+    model.cues = rawCues
+      .map((c) => {
+        const playIndex = cueIndex(model, c.bar, c.pass || 1);
+        return { ...c, playIndex, beat: playIndex >= 0 ? play[playIndex].startBeat : null };
+      })
+      .filter((c) => c.playIndex >= 0);
+    model.firstHitBeat = events.length ? events[0].beat : 0;
     return model;
   }
 
@@ -345,7 +352,31 @@
     return { chords, rests };
   }
 
-  const api = { LANES, LANE_INFO, STEPS, REST_GAP, validate, prepare, cueIndex, playAt, barStartBeat, makeTimeMap, calibrate, cueState, engraveBar, lowerBound };
+  /* ---------- practice levels: turtle -> walk -> rabbit, 3 stars each ---------- */
+  const LEVELS = [
+    { icon: '🐢', rate: 0.75 },
+    { icon: '🚶', rate: 0.85 },
+    { icon: '🐇', rate: 1 },
+  ];
+  const newProgress = () => ({ level: 0, stars: 0, graduated: false, plays: 0 });
+  // Award one star for a full run. hasMid=false skips the walking level.
+  function awardStar(progress, hasMid) {
+    const p = { ...newProgress(), ...(progress || {}) };
+    p.plays++;
+    if (p.graduated) return { progress: p, event: 'again' };
+    p.stars++;
+    if (p.stars < 3) return { progress: p, event: 'star' };
+    if (p.level < 2) {
+      p.level = p.level === 0 && !hasMid ? 2 : p.level + 1;
+      p.stars = 0;
+      return { progress: p, event: 'levelup' };
+    }
+    p.graduated = true;
+    p.stars = 3;
+    return { progress: p, event: 'graduate' };
+  }
+
+  const api = { LANES, LANE_INFO, STEPS, REST_GAP, validate, prepare, cueIndex, playAt, barStartBeat, makeTimeMap, calibrate, cueState, engraveBar, lowerBound, LEVELS, newProgress, awardStar };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FDT = api;
 })(typeof window !== 'undefined' ? window : globalThis);

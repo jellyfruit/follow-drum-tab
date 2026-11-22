@@ -1,51 +1,72 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>鼓譜卡拉OK</title>
+<meta name="apple-mobile-web-app-title" content="Drum Tab">
+<meta name="theme-color" content="#161a2b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>Follow Drum Tab</title>
 <style>
 :root{
   --bg:#161a2b; --panel:#21263d; --panel2:#2b3150; --line:#3b4266; --ink:#d6dbef; --mut:#8f98bd;
   --acc:#ff9a3c; --yel:#ffd84d;
   --BD:#ff9a3c; --SN:#ff5d5d; --HH:#4cd3e0; --T1:#6bd66b; --FT:#b583ff; --CY:#f5c542;
+  --pad-t:calc(8px + env(safe-area-inset-top)); --pad-r:calc(10px + env(safe-area-inset-right));
+  --pad-b:calc(8px + env(safe-area-inset-bottom)); --pad-l:calc(10px + env(safe-area-inset-left));
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;overflow:hidden;touch-action:manipulation}
-body{display:grid;grid-template-rows:56px minmax(0,1fr) 62px 104px;gap:8px;
-  padding:calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left))}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;touch-action:manipulation}
 button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
+.screen{position:fixed;inset:0;padding:var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-l);display:none}
+.screen.on{display:grid}
 
-/* header */
-#hud{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:16px;padding:0 16px}
+/* ---------- library ---------- */
+#library{grid-template-rows:64px minmax(0,1fr);gap:10px}
+.libhead{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:16px;padding:0 16px}
+.libhead h1{font-size:24px;margin:0}
+.libhead .gear{margin-left:auto}
+#songList{list-style:none;margin:0;padding:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px}
+#songList li button{width:100%;min-height:84px;display:flex;align-items:center;gap:16px;background:var(--panel);border-radius:16px;padding:12px 22px;text-align:left}
+#songList li button:active{background:var(--panel2)}
+.songTitle{font-size:24px;font-weight:700}
+.songArtist{font-size:15px;color:var(--mut);margin-top:2px}
+.songLevel{margin-left:auto;font-size:30px;white-space:nowrap}
+#libEmpty{display:none;text-align:center;color:var(--mut);font-size:20px;line-height:1.6;padding:60px 20px}
+#libEmpty b{color:var(--ink)}
+
+/* ---------- player ---------- */
+#player{grid-template-rows:56px minmax(0,1fr) 62px 104px;gap:8px}
+#hud{display:flex;align-items:center;gap:12px;background:var(--panel);border-radius:16px;padding:0 12px 0 6px;min-width:0}
+#btnBack{font-size:26px;width:52px;height:44px;border-radius:12px;background:var(--panel2);flex:none}
 #hudBar{font-size:20px;font-weight:700;white-space:nowrap}
 #hudSec{font-size:17px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hudTitle{margin-left:auto;font-size:15px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
 #hudSpeed{font-size:22px}
-
-/* main */
 #main{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:8px;min-height:0}
 #score{position:relative;overflow:hidden;background:#1d2238;border-radius:16px}
 #score svg{position:absolute;left:0;top:0;width:100%;will-change:transform}
-#side{display:grid;grid-template-rows:auto minmax(0,1fr) 150px;gap:8px;min-height:0}
-#pass{background:var(--panel);border-radius:16px;text-align:center;font-size:22px;font-weight:700;padding:8px;min-height:44px;color:var(--yel)}
-#pass:empty{visibility:hidden}
-#kitBox{background:var(--panel);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:6px}
+#side{display:flex;flex-direction:column;gap:8px;min-height:0}
+#ytBox{flex:none;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;position:relative}
+#ytBox iframe{width:100%;height:100%;display:block;border:0}
+#ytBox:empty{display:none}
+#pass{background:var(--panel);border-radius:16px;text-align:center;font-size:20px;font-weight:700;padding:6px;color:var(--yel);flex:none}
+#pass:empty{display:none}
+#kitBox{background:var(--panel);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:6px;flex:1 1 0;min-height:110px}
 #kit{width:100%;height:100%;max-height:230px}
-#status{background:var(--panel);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
-#statusBig{font-size:64px;font-weight:800;line-height:1}
+#status{background:var(--panel);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;flex:0 0 132px;text-align:center;padding:6px}
+#statusBig{font-size:58px;font-weight:800;line-height:1}
 #statusSmall{font-size:15px;color:var(--mut);margin-top:6px}
 #dots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:220px;margin-top:8px}
-#dots i{width:18px;height:18px;border-radius:50%;background:var(--HH);display:block}
-
-/* sections */
+#dots i{width:16px;height:16px;border-radius:50%;background:var(--HH);display:block}
 #sections{display:flex;gap:6px;min-width:0}
 #sections button{flex:1 1 0;min-width:64px;border-radius:12px;font-size:15px;font-weight:700;color:#1b1b28;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;opacity:.75;border:3px solid transparent}
 #sections button.on{opacity:1;border-color:#fff}
-
-/* controls */
 #controls{display:flex;gap:10px;align-items:stretch}
 .big{background:var(--panel2);border-radius:20px;min-width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:34px;line-height:1}
 .big small{font-size:13px;color:var(--mut);margin-top:6px}
@@ -54,11 +75,13 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 #speeds{display:flex;gap:6px;background:var(--panel2);border-radius:20px;padding:6px;flex:1.4}
 #speeds button{flex:1;border-radius:14px;font-size:34px;opacity:.45}
 #speeds button.on{opacity:1;background:#454d78}
-#btnGear{position:relative;min-width:90px;background:transparent;border:2px dashed var(--line);color:var(--mut)}
-#btnGear .ring{position:absolute;inset:0;border-radius:20px;border:4px solid var(--acc);clip-path:inset(0 100% 0 0)}
-#btnGear.hold .ring{transition:clip-path 1.5s linear;clip-path:inset(0 0 0 0)}
+#speeds button[hidden]{display:none}
+.gear{position:relative;min-width:90px;background:transparent;border:2px dashed var(--line);color:var(--mut);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;line-height:1;padding:6px 10px}
+.gear small{font-size:12px;margin-top:4px}
+.gear .ring{position:absolute;inset:-2px;border-radius:20px;border:4px solid var(--acc);clip-path:inset(0 100% 0 0);pointer-events:none}
+.gear.hold .ring{transition:clip-path 1.5s linear;clip-path:inset(0 0 0 0)}
 
-/* svg score styles */
+/* score */
 .sl{stroke:#6c7499;stroke-width:1.1}
 .ink{fill:#c9cfe6}
 .stem{stroke:#c9cfe6;stroke-width:1.6}
@@ -85,159 +108,384 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 .drum.soon circle,.drum.soon ellipse{fill-opacity:.45;stroke:#fff;stroke-dasharray:6 4}
 .drum.hit{transform:scale(1.15)}
 .drum.hit circle,.drum.hit ellipse{fill-opacity:1;stroke:#fff}
-.drum text{font:700 13px sans-serif;fill:#e8ecf8;text-anchor:middle;pointer-events:none}
+.drum text{font:700 12px sans-serif;fill:#e8ecf8;text-anchor:middle;pointer-events:none}
 
-/* overlays */
+/* overlays and sheets */
 .overlay{position:fixed;inset:0;background:rgba(8,10,20,.72);display:none;align-items:center;justify-content:center;z-index:10}
 .overlay.on{display:flex}
-.sheet{background:var(--panel);border-radius:20px;padding:20px;width:min(760px,92vw);max-height:90vh;overflow:auto;-webkit-user-select:text;user-select:text}
-.sheet h2{margin:0 0 12px;font-size:20px}
-.sheet textarea{width:100%;height:220px;background:#12152a;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text}
+.sheet{background:var(--panel);border-radius:20px;padding:20px;width:min(760px,94vw);max-height:92vh;overflow:auto;-webkit-user-select:text;user-select:text}
+.sheet h2{margin:0 0 12px;font-size:22px}
+.sheet h3{margin:18px 0 6px;font-size:16px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.sheet textarea{width:100%;height:150px;background:#12152a;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:12px ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text}
+.sheet input[type=text]{flex:1;min-width:200px;background:#12152a;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px;-webkit-user-select:text;user-select:text}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
-.btn{background:var(--panel2);border-radius:12px;padding:10px 16px;font-size:16px}
+.btn{background:var(--panel2);border-radius:12px;padding:11px 16px;font-size:16px}
 .btn.pri{background:var(--acc);color:#2a1505;font-weight:700}
+.btn.danger{background:#5a2633;color:#ffd4dc}
+.btn:disabled{opacity:.4}
 .err{color:#ff8a8a;white-space:pre-wrap;font-size:14px}
 .ok{color:#8ee6a8;font-size:14px}
-.mut{color:var(--mut);font-size:14px}
-#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:20px;line-height:1.6;color:var(--mut)}
-#empty b{color:var(--ink)}
-#done{flex-direction:column;font-size:90px;color:var(--yel);font-weight:800}
-#done small{font-size:24px;color:var(--ink)}
+.warn{color:#ffd27a;font-size:14px}
+.mut{color:var(--mut);font-size:14px;line-height:1.5}
+#done{flex-direction:column;text-align:center;color:var(--yel);font-weight:800}
+#doneBig{font-size:96px;line-height:1.1}
+#doneSmall{font-size:28px;color:var(--ink);margin-top:10px}
 
-/* narrow screens (phone, iPad split view): stack panels, wrap the button row */
+/* sync mode: the video grows, the sync panel sits on the right */
+body.syncing #ytBox{position:fixed;z-index:21;left:var(--pad-l);top:calc(var(--pad-t) + 10px);width:calc(100vw - 440px - var(--pad-l) - var(--pad-r));max-height:70vh;aspect-ratio:16/9;height:auto}
+#sync{justify-content:flex-end;align-items:stretch;padding:var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-l)}
+#sync .sheet{width:420px;max-height:none;height:100%;border-radius:20px}
+#syncBar{font-size:30px;font-weight:800;color:var(--yel);margin:6px 0}
+.cue{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:12px;padding:8px 10px;margin:8px 0}
+.cue .lbl{flex:1;font-size:15px}
+.cue .lbl small{display:block;color:var(--mut)}
+.cue .t{font:600 14px ui-monospace,Menlo,monospace;color:var(--T1);min-width:56px;text-align:right}
+.cue .tap{background:var(--acc);color:#2a1505;font-weight:800;border-radius:10px;padding:12px 14px;font-size:16px}
+.cue .clr{color:var(--mut);font-size:18px;padding:6px}
+
 @media (max-width:700px){
-  body{grid-template-rows:48px minmax(0,1fr) 50px auto;gap:6px}
-  #hud{padding:0 10px;gap:8px}
-  #hudBar{font-size:16px}#hudSec{font-size:14px}#hudTitle{display:none}
+  #player{grid-template-rows:48px minmax(0,1fr) 50px auto;gap:6px}
+  #hud{gap:8px}#hudBar{font-size:16px}#hudSec{font-size:14px}#hudTitle{display:none}
   #main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 120px}
-  #side{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr)}
-  #pass{display:none}
-  #statusBig{font-size:44px}
+  #side{flex-direction:row}#ytBox{height:100%}#pass{display:none}
+  #kitBox{min-height:0}#status{flex:1 1 0}#statusBig{font-size:40px}
   #sections button{min-width:48px;font-size:12px}
   #controls{flex-wrap:wrap;gap:6px}
-  .big{min-width:0;flex:1;height:64px;font-size:26px}
-  .big small{font-size:11px;margin-top:3px}
-  #btnPlay{flex:1.6;font-size:34px}
-  #btnGear{min-width:0}
-  #speeds{order:5;flex:1 1 100%;height:56px}
-  #speeds button{font-size:26px}
+  .big{min-width:0;flex:1;height:64px;font-size:26px}.big small{font-size:11px;margin-top:3px}
+  #btnPlay{flex:1.6;font-size:34px}.gear{min-width:0}
+  #speeds{order:5;flex:1 1 100%;height:56px}#speeds button{font-size:26px}
+  body.syncing #ytBox{width:calc(100vw - 20px);max-height:none}
+  #sync{align-items:flex-end}#sync .sheet{width:100%;height:58vh}
 }
 </style>
 </head>
 <body>
 
-<header id="hud">
-  <span id="hudBar">—</span>
-  <span id="hudSec"></span>
-  <span id="hudTitle"></span>
-  <span id="hudSpeed">🐇</span>
-</header>
-
-<section id="main">
-  <div id="score">
-    <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div id="empty"><div>還沒有譜<br><b>長按右下角 ⚙ 1.5 秒</b>，貼上 Claude 給你的譜資料</div></div>
-  </div>
-  <aside id="side">
-    <div id="pass"></div>
-    <div id="kitBox">
-      <svg id="kit" viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
-        <g class="drum" data-lane="CY"><circle cx="178" cy="38" r="28" fill="var(--CY)" stroke="var(--CY)"/><text x="178" y="43">銅鈸</text></g>
-        <g class="drum" data-lane="HH"><circle cx="38" cy="62" r="27" fill="var(--HH)" stroke="var(--HH)"/><text x="38" y="67">踩鑔</text></g>
-        <g class="drum" data-lane="T1"><circle cx="110" cy="42" r="22" fill="var(--T1)" stroke="var(--T1)"/><text x="110" y="47">高嗵</text></g>
-        <g class="drum" data-lane="SN"><circle cx="72" cy="118" r="27" fill="var(--SN)" stroke="var(--SN)"/><text x="72" y="123">小鼓</text></g>
-        <g class="drum" data-lane="FT"><circle cx="170" cy="118" r="29" fill="var(--FT)" stroke="var(--FT)"/><text x="170" y="123">低嗵</text></g>
-        <g class="drum" data-lane="BD"><ellipse cx="118" cy="164" rx="40" ry="21" fill="var(--BD)" stroke="var(--BD)"/><text x="118" y="169">底鼓</text></g>
-      </svg>
-    </div>
-    <div id="status"><div id="statusBig"></div><div id="dots"></div><div id="statusSmall"></div></div>
-  </aside>
+<!-- ================= library ================= -->
+<section class="screen on" id="library">
+  <header class="libhead">
+    <h1>🥁 Follow Drum Tab</h1>
+    <button class="gear" id="libGear" aria-label="Grown-ups (hold)"><span class="ring"></span>⚙<small>hold</small></button>
+  </header>
+  <ul id="songList"></ul>
+  <div id="libEmpty">No songs yet.<br><b>Hold ⚙ for 1.5 seconds</b> to add one.</div>
 </section>
 
-<nav id="sections"></nav>
+<!-- ================= player ================= -->
+<section class="screen" id="player">
+  <header id="hud">
+    <button id="btnBack" aria-label="Back to songs">◀</button>
+    <span id="hudBar">—</span>
+    <span id="hudSec"></span>
+    <span id="hudTitle"></span>
+    <span id="hudSpeed">🐇</span>
+  </header>
+  <section id="main">
+    <div id="score"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <aside id="side">
+      <div id="ytBox"></div>
+      <div id="pass"></div>
+      <div id="kitBox">
+        <svg id="kit" viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
+          <g class="drum" data-lane="CY"><circle cx="178" cy="38" r="28" fill="var(--CY)" stroke="var(--CY)"/><text x="178" y="42">Crash</text></g>
+          <g class="drum" data-lane="HH"><circle cx="38" cy="62" r="27" fill="var(--HH)" stroke="var(--HH)"/><text x="38" y="66">Hi-hat</text></g>
+          <g class="drum" data-lane="T1"><circle cx="110" cy="42" r="22" fill="var(--T1)" stroke="var(--T1)"/><text x="110" y="46">Tom</text></g>
+          <g class="drum" data-lane="SN"><circle cx="72" cy="118" r="27" fill="var(--SN)" stroke="var(--SN)"/><text x="72" y="122">Snare</text></g>
+          <g class="drum" data-lane="FT"><circle cx="170" cy="118" r="29" fill="var(--FT)" stroke="var(--FT)"/><text x="170" y="122">Floor</text></g>
+          <g class="drum" data-lane="BD"><ellipse cx="118" cy="164" rx="40" ry="21" fill="var(--BD)" stroke="var(--BD)"/><text x="118" y="168">Kick</text></g>
+        </svg>
+      </div>
+      <div id="status"><div id="statusBig"></div><div id="dots"></div><div id="statusSmall"></div></div>
+    </aside>
+  </section>
+  <nav id="sections"></nav>
+  <footer id="controls">
+    <button class="big" id="btnStart" aria-label="From the start">⏮<small>Start</small></button>
+    <button class="big" id="btnPlay" aria-label="Play">▶</button>
+    <button class="big" id="btnLoop" aria-label="Repeat this part">🔁<small>Again</small></button>
+    <div id="speeds">
+      <button data-level="0" aria-label="Slow">🐢</button>
+      <button data-level="1" aria-label="Medium">🚶</button>
+      <button data-level="2" class="on" aria-label="Full speed">🐇</button>
+    </div>
+    <button class="gear" id="songGear" aria-label="Grown-ups (hold)"><span class="ring"></span>⚙<small>hold</small></button>
+  </footer>
+</section>
 
-<footer id="controls">
-  <button class="big" id="btnStart" aria-label="從頭">⏮<small>從頭</small></button>
-  <button class="big" id="btnPlay" aria-label="播放">▶</button>
-  <button class="big" id="btnLoop" aria-label="這段再一次">🔁<small>這段再一次</small></button>
-  <div id="speeds">
-    <button data-rate="0.75" aria-label="慢">🐢</button>
-    <button data-rate="0.85" aria-label="中">🚶</button>
-    <button data-rate="1" class="on" aria-label="正常">🐇</button>
-  </div>
-  <button class="big" id="btnGear" aria-label="家長設定（長按）"><span class="ring"></span>⚙<small>長按</small></button>
-</footer>
-
-<div class="overlay" id="parent">
+<!-- ================= grown-up sheets ================= -->
+<div class="overlay" id="libParent">
   <div class="sheet">
-    <h2>家長區</h2>
-    <div class="row">
-      <button class="btn pri" id="btnPick" style="font-size:18px;padding:14px 20px">📂 從檔案／Google Drive 選譜</button>
-      <input type="file" id="file" hidden>
-    </div>
-    <div class="mut">選了會直接載入。iPad 上點按鈕後，在「瀏覽」裡選 Google Drive（需要先裝 Google Drive App）。<br>或把譜資料（JSON）整段貼在下面，按「載入貼上的內容」。</div>
-    <textarea id="ta" spellcheck="false" placeholder='{ "version": 2, "title": "…", "bars": [ … ] }'></textarea>
-    <div class="row">
-      <button class="btn" id="btnLoad">載入貼上的內容</button>
-      <span id="loadMsg"></span>
-    </div>
-    <div class="row">
-      <label><input type="checkbox" id="chkMet" checked> 節拍器嗶聲</label>
-      <label>BPM <input type="number" id="numBpm" step="0.1" min="30" max="300" style="width:90px"></label>
-    </div>
-    <div class="mut">目前這一版還沒接 YouTube，播放時用節拍器跑。對拍與 YouTube 會在下一階段加入。</div>
-    <div class="row"><button class="btn" id="btnClose">關閉</button></div>
+    <h2>Grown-ups</h2>
+    <h3>Add a song</h3>
+    <div class="row"><button class="btn pri" id="btnAddFile" style="font-size:18px;padding:14px 20px">📂 Choose song file (Files / Google Drive)</button></div>
+    <div class="mut">On iPad, tap the button, then Browse → Drive (needs the Google Drive app). Or paste the song data below.</div>
+    <textarea id="taAdd" spellcheck="false" placeholder='{ "version": 2, "title": "…", "bars": [ … ] }'></textarea>
+    <div class="row"><button class="btn" id="btnAddPaste">Add pasted song</button><span id="addMsg"></span></div>
+    <h3>Backup</h3>
+    <div class="mut">Songs, sync and stars live only on this iPad. Save a backup now and then (e.g. to Google Drive).</div>
+    <div class="row"><button class="btn" id="btnExport">⬇ Save backup</button><button class="btn" id="btnImport">⬆ Restore backup</button><span id="backupMsg"></span></div>
+    <div class="row" style="margin-top:20px"><button class="btn" data-close>Close</button></div>
   </div>
 </div>
 
-<div class="overlay" id="done">🎉<small>完成！</small></div>
+<div class="overlay" id="songParent">
+  <div class="sheet">
+    <h2 id="spTitle">Song</h2>
+    <h3>Music</h3>
+    <div class="row"><input type="text" id="ytUrl" placeholder="Paste a YouTube link" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn pri" id="btnUseVideo">Use video</button><button class="btn" id="btnNoVideo">No video</button></div>
+    <div class="mut">Tip: pick the studio version ("Official Audio" or a lyric video). Avoid live versions, remixes and covers.</div>
+    <div id="lenCheck" class="mut"></div>
+    <div class="row"><button class="btn pri" id="btnSync" style="font-size:18px;padding:14px 20px">🎯 Sync score with the music</button><span id="syncState" class="mut"></span></div>
+    <h3>Practice</h3>
+    <div class="row"><label><input type="checkbox" id="chkMet"> Metronome beeps</label></div>
+    <div class="row"><span class="mut" id="progressTxt"></span><button class="btn" id="btnResetStars">Reset stars</button></div>
+    <h3>Song data</h3>
+    <div id="songNotes" class="mut"></div>
+    <div class="row"><button class="btn" id="btnReplace">📂 Replace with a new file</button><button class="btn danger" id="btnDelete">Delete song</button><span id="songMsg"></span></div>
+    <div class="row" style="margin-top:20px"><button class="btn" data-close>Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="sync">
+  <div class="sheet">
+    <h2>Sync with the music</h2>
+    <div class="mut">Play the video. When you hear a moment below, tap <b>Now!</b>. Tap at least two: one early and one late in the song.</div>
+    <div class="row">
+      <button class="btn pri" id="syPlay">▶ Play</button>
+      <button class="btn" id="syBack">−5 s</button>
+      <button class="btn" id="syFwd">+5 s</button>
+      <button class="btn" id="sySlow">0.5×</button>
+    </div>
+    <div id="syncBar">—</div>
+    <div id="cueList"></div>
+    <h3>Fine-tune</h3>
+    <div class="mut">Turn on beeps and listen. If the beeps come <b>before</b> the drums in the song, press “later”.</div>
+    <div class="row">
+      <button class="btn" data-nudge="-0.1">−0.1 s</button><button class="btn" data-nudge="-0.02">−0.02</button>
+      <span id="offTxt" style="min-width:70px;text-align:center">0.00 s</span>
+      <button class="btn" data-nudge="0.02">+0.02</button><button class="btn" data-nudge="0.1">+0.1 s later</button>
+    </div>
+    <div class="row"><label><input type="checkbox" id="syBeeps" checked> Beeps on every beat</label></div>
+    <div class="row" style="margin-top:16px"><button class="btn pri" id="syDone">Done</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="done"><div id="doneBig">🎉</div><div id="doneSmall">Done!</div></div>
+<input type="file" id="file" hidden>
 
 <script src="core.js"></script>
+<script src="store.js"></script>
+<script src="clock.js"></script>
 <script>
 (() => {
 'use strict';
-const F = window.FDT;
+const F = window.FDT, S = window.FDTStore, C = window.FDTClock;
 const $ = (s) => document.querySelector(s);
-const STORE = 'fdt.song.v2';
 const SVG_W = 1000, ROW_H = 150, TOP = 26, CLEF_W = 48, SP = 10;
 
-let model = null, tm = null;
-let score = null; // {chords: Map key->el, geom, rowTops, height}
+/* ---------------- state ---------------- */
+let rec = null;          // current song record
+let model = null, tm = null, clock = null, score = null;
 let rate = 1, metOn = true, loopOn = false, loopSec = null;
-let playing = false, baseSec = 0, basePerf = 0;
-let lastBeatInt = null, lastPlayIndex = -1, litKeys = new Set(), scrollY = 0;
-let ac = null;
+let levelRates = [0.75, 0.85, 1];          // rates for 🐢 🚶 🐇 (🚶 may be null)
+let run = null;                             // { minRate } while a full run from the top is valid
+let lastBeatInt = null, lastPlayIndex = -1, litKeys = new Set(), scrollY = 0, finished = false;
+let ac = null, syncing = false, hudCache = {};
 
-/* ---------------- clock (internal; YouTube comes next stage) ---------------- */
-const nowSec = () => (playing ? baseSec + ((performance.now() - basePerf) / 1000) * rate : baseSec);
-const nowBeat = () => (tm ? tm.beatAt(nowSec()) : 0);
+/* ---------------- helpers ---------------- */
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtTime = (sec) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+function show(id) { document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id)); }
+function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
+function msg(el, text, cls) { el.textContent = text; el.className = cls || ''; }
+const levelIcon = (p) => (p && p.graduated ? '👑' : F.LEVELS[(p && p.level) || 0].icon);
+const starsTxt = (p) => (p && p.graduated ? '⭐⭐⭐' : '⭐'.repeat((p && p.stars) || 0) + '☆'.repeat(3 - ((p && p.stars) || 0)));
+
+function holdButton(btn, fn) {
+  let t = null;
+  btn.addEventListener('pointerdown', () => { btn.classList.add('hold'); t = setTimeout(() => { btn.classList.remove('hold'); fn(); }, 1500); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, () => { clearTimeout(t); btn.classList.remove('hold'); }));
+  btn.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+document.querySelectorAll('[data-close]').forEach((b) => (b.onclick = () => b.closest('.overlay').classList.remove('on')));
+
+// one hidden file input, reused
+let fileCb = null;
+function pickFile(cb) { fileCb = cb; $('#file').value = ''; $('#file').click(); }
+$('#file').onchange = async (e) => {
+  const f = e.target.files[0]; if (!f || !fileCb) return;
+  let text;
+  try { text = (await f.text()).replace(/^﻿/, '').trim(); }
+  catch (err) { fileCb(null, "Couldn't read that file. If it's on Google Drive, make sure the iPad is online."); return; }
+  fileCb(text, null);
+};
+
+function parseSong(text) {
+  let song;
+  try { song = JSON.parse(String(text).replace(/^﻿/, '').trim()); }
+  catch (e) { return { err: "This isn't song data. If you pasted it, make sure you copied everything from { to }. If it's a file, pick the .json file from Claude." }; }
+  try { const m = F.prepare(song); return { song, model: m }; }
+  catch (e) { return { err: (e.errors || [e.message]).join('\n') }; }
+}
+
+/* ---------------- library ---------------- */
+async function renderLibrary() {
+  const list = await S.list();
+  const ul = $('#songList');
+  ul.innerHTML = '';
+  $('#libEmpty').style.display = list.length ? 'none' : 'block';
+  for (const r of list) {
+    const li = document.createElement('li');
+    li.innerHTML = `<button><div><div class="songTitle">${esc(r.title || 'Untitled')}</div><div class="songArtist">${esc(r.artist || '')}</div></div><div class="songLevel">${levelIcon(r.progress)} ${starsTxt(r.progress)}</div></button>`;
+    li.firstChild.onclick = () => openSong(r.id);
+    ul.appendChild(li);
+  }
+}
+
+async function addSong(text, msgEl) {
+  const p = parseSong(text);
+  if (p.err) { msg(msgEl, p.err, 'err'); return null; }
+  const r = {
+    id: S.newId(p.song.title), title: p.song.title || 'Untitled', artist: p.song.artist || '', json: text,
+    youtubeId: p.song.youtubeId || null, sync: { anchors: [], offset: 0 }, metronome: null,
+    progress: F.newProgress(), added: Date.now(),
+  };
+  await S.put(r);
+  msg(msgEl, `Added “${r.title}”: ${p.model.play.length} bars, about ${fmtTime(p.model.totalBeats * 60 / p.song.bpm)}.`, 'ok');
+  renderLibrary();
+  return r;
+}
+
+holdButton($('#libGear'), () => { msg($('#addMsg'), ''); msg($('#backupMsg'), ''); $('#libParent').classList.add('on'); });
+$('#btnAddFile').onclick = () => pickFile((text, err) => (err ? msg($('#addMsg'), err, 'err') : addSong(text, $('#addMsg'))));
+$('#btnAddPaste').onclick = async () => { if (await addSong($('#taAdd').value, $('#addMsg'))) $('#taAdd').value = ''; };
+$('#btnExport').onclick = async () => {
+  const data = { app: 'follow-drum-tab', version: 1, exported: new Date().toISOString(), songs: await S.list() };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `drum-tab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  msg($('#backupMsg'), `Saved ${data.songs.length} song(s). On iPad, find it in Files → Downloads.`, 'ok');
+};
+$('#btnImport').onclick = () => pickFile(async (text, err) => {
+  if (err) return msg($('#backupMsg'), err, 'err');
+  try {
+    const data = JSON.parse(text);
+    if (!data || !Array.isArray(data.songs)) throw new Error();
+    let n = 0;
+    for (const r of data.songs) { if (r && r.id && r.json && !parseSong(r.json).err) { await S.put(r); n++; } }
+    msg($('#backupMsg'), `Restored ${n} song(s).`, 'ok');
+    renderLibrary();
+  } catch (e) { msg($('#backupMsg'), "That isn't a backup file from this app.", 'err'); }
+});
+
+/* ---------------- opening a song ---------------- */
+function effectiveSong() {
+  const song = JSON.parse(rec.json);
+  const off = (rec.sync && rec.sync.offset) || 0;
+  const anchors = ((rec.sync && rec.sync.anchors) || []).map((a) => ({ bar: a.bar, sec: a.sec + off }));
+  song.anchors = anchors;
+  if (!anchors.length) song.firstBeatSec = (Number.isFinite(song.firstBeatSec) ? song.firstBeatSec : 0) + off;
+  return song;
+}
+function rebuildTimeMap() { tm = F.makeTimeMap(effectiveSong(), model); }
+
+async function openSong(id) {
+  rec = await S.get(id);
+  if (!rec) return;
+  const p = parseSong(rec.json);
+  if (p.err) { alertSheet(p.err); return; }
+  model = p.model;
+  rec.progress = { ...F.newProgress(), ...(rec.progress || {}) };
+  rec.sync = rec.sync || { anchors: [], offset: 0 };
+  rebuildTimeMap();
+  hudCache = {};
+  setText('hudTitle', [rec.title, rec.artist].filter(Boolean).join(' · '));
+  show('player');
+  renderScore(); renderSections();
+  setupClock();
+  loopOn = false; $('#btnLoop').classList.remove('on');
+  finished = false; run = null;
+  draw(true);
+}
+function alertSheet(text) { msg($('#addMsg'), text, 'err'); $('#libParent').classList.add('on'); }
+
+function setupClock() {
+  if (clock) clock.destroy();
+  $('#ytBox').innerHTML = '';
+  levelRates = [0.75, 0.85, 1];
+  if (rec.youtubeId) {
+    clock = new C.YouTubeClock($('#ytBox'), rec.youtubeId, {
+      onReady: (c) => { applyRates(c.rates()); updateLenCheck(); goToStart(); },
+      onError: (m) => { setText('statusSmall', m); msg($('#songMsg'), m, 'err'); },
+      onRate: (r) => { rate = r; updateSpeedUI(); },
+    });
+  } else {
+    clock = new C.InternalClock();
+    applyRates(clock.rates());
+  }
+  clock.onstate = (st) => {
+    $('#btnPlay').textContent = st === 'playing' ? '⏸' : '▶';
+    if (st === 'ended' && model && nowBeat() >= model.totalBeats - 8) finish();
+  };
+  metOn = rec.metronome != null ? rec.metronome : !rec.youtubeId;
+  $('#btnPlay').textContent = '▶';
+  goToStart();
+}
+
+function applyRates(avail) {
+  const has = (r) => avail.some((a) => Math.abs(a - r) < 0.001);
+  const slow = has(0.75) ? 0.75 : 0.5;
+  const mid = [0.85, 0.9, 0.8].find(has) || null;
+  levelRates = [slow, mid, 1];
+  $('#speeds [data-level="1"]').hidden = !mid;
+  let lv = rec.progress.graduated ? 2 : rec.progress.level;
+  if (lv === 1 && !mid) lv = 2;
+  setRate(levelRates[lv]);
+}
+function setRate(r) {
+  if (!clock) return;
+  rate = clock.setRate(r) || r;
+  if (run) run.minRate = Math.min(run.minRate, rate);
+  updateSpeedUI();
+}
+function updateSpeedUI() {
+  document.querySelectorAll('#speeds button').forEach((b) => b.classList.toggle('on', Math.abs((levelRates[+b.dataset.level] || -1) - rate) < 0.001));
+  $('#hudSpeed').textContent = rate < 0.8 ? '🐢' : rate < 0.99 ? '🚶' : '🐇';
+}
+
+/* ---------------- time ---------------- */
+const nowBeat = () => (tm && clock ? tm.beatAt(clock.time()) : 0);
 function seekBeat(b, keepLoop) {
-  baseSec = tm.timeAt(Math.max(0, b));
-  basePerf = performance.now();
-  lastBeatInt = null;
+  const sec = tm.timeAt(b);
+  clock.seek(clock.kind === 'youtube' ? Math.max(0, sec) : sec);
+  lastBeatInt = null; finished = false; run = null;
   if (!keepLoop) loopSec = null;
 }
+function goToStart() {
+  if (!clock || !tm) return;
+  if (clock.kind === 'youtube') { clock.seek(0); lastBeatInt = null; finished = false; run = null; loopSec = null; }
+  else seekBeat(Math.min(-4, model.firstHitBeat - 4)); // one bar of count-in before the first hit
+}
+const preroll = (playIndex) => F.barStartBeat(model, playIndex - 1);
 function sectionAt(beat) {
   const pi = F.playAt(model, Math.max(0, beat)).playIndex;
   return model.sections.find((s) => pi >= s.start && pi < s.end) || null;
 }
-const preroll = (playIndex) => F.barStartBeat(model, playIndex - 1); // start one bar early
+
 function play() {
-  if (!model) return;
-  if (nowBeat() >= model.totalBeats) seekBeat(0);
+  if (!model || !clock) return;
+  if (clock.kind === 'youtube' && !clock.ready) { setText('statusSmall', 'Video is loading…'); return; }
+  if (finished || nowBeat() >= model.totalBeats) goToStart();
   ensureAudio();
-  baseSec = nowSec(); basePerf = performance.now(); playing = true; lastBeatInt = null;
-  $('#btnPlay').textContent = '⏸';
+  if (!run && nowBeat() <= model.firstHitBeat + 0.01) run = { minRate: rate };
+  clock.play();
+  if (clock.kind === 'internal') $('#btnPlay').textContent = '⏸';
+  if (clock.kind === 'youtube') { const c = clock; setTimeout(() => { if (clock === c && !c.playing()) setText('statusSmall', 'If nothing happens, tap the video once.'); }, 1800); }
 }
-function pause() {
-  baseSec = nowSec(); playing = false;
-  $('#btnPlay').textContent = '▶';
-}
-function setRate(r) {
-  baseSec = nowSec(); basePerf = performance.now(); rate = r;
-  document.querySelectorAll('#speeds button').forEach((b) => b.classList.toggle('on', +b.dataset.rate === r));
-  $('#hudSpeed').textContent = r < 0.8 ? '🐢' : r < 1 ? '🚶' : '🐇';
-}
+function pause() { if (clock) clock.pause(); $('#btnPlay').textContent = '▶'; }
 
 /* ---------------- metronome ---------------- */
 function ensureAudio() {
@@ -247,7 +495,7 @@ function ensureAudio() {
   } catch (e) {}
 }
 function click(accent) {
-  if (!ac || !metOn) return;
+  if (!ac) return;
   try {
     const o = ac.createOscillator(), g = ac.createGain();
     o.frequency.value = accent ? 1500 : 1000;
@@ -257,9 +505,7 @@ function click(accent) {
   } catch (e) {}
 }
 
-/* ---------------- score rendering (SVG, PDF-like layout: 4 slots per row) ---------------- */
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-
+/* ---------------- score rendering (verified against the teacher's PDFs) ---------------- */
 function buildScore(m) {
   const o = [];
   const geom = {}, rowTops = [];
@@ -387,6 +633,7 @@ function drawBar(o, eg, n, nx0, nx1, Y, steps) {
   }
 }
 
+
 function renderScore() {
   const svg = $('#svg');
   score = buildScore(model);
@@ -399,7 +646,6 @@ function renderScore() {
   lastPlayIndex = -1; litKeys = new Set();
 }
 
-/* ---------------- sections bar ---------------- */
 const SEC_COLORS = ['#85B7EB', '#5DCAA5', '#AFA9EC', '#F0997B', '#97C459', '#FAC775'];
 function renderSections() {
   const nav = $('#sections');
@@ -414,30 +660,54 @@ function renderSections() {
     b.style.flexGrow = String(s.end - s.start);
     b.textContent = (s.chorus ? '⭐ ' : '') + (s.name || '—');
     b.dataset.i = i;
-    b.onclick = () => { seekBeat(preroll(s.start)); loopSec = s; draw(true); }; // 1-bar pre-roll; loop targets this section
+    b.onclick = () => { seekBeat(preroll(s.start)); loopSec = s; draw(true); };
     nav.appendChild(b);
   });
 }
 
-/* ---------------- per-frame drawing ---------------- */
-let hudCache = {};
-function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; document.getElementById(id).textContent = v; } }
+/* ---------------- finishing a run: stars ---------------- */
+async function finish() {
+  if (finished) return;
+  finished = true;
+  pause();
+  const p = rec.progress;
+  const need = levelRates[p.graduated ? 2 : p.level] || 1;
+  let big = '🎉', small = 'Well done!';
+  if (run && run.minRate >= need - 0.001) {
+    const r = F.awardStar(p, !!levelRates[1]);
+    rec.progress = r.progress;
+    await S.put(rec);
+    const q = rec.progress;
+    if (r.event === 'star') { big = starsTxt(q); small = `${F.LEVELS[q.level].icon} Great job!`; }
+    else if (r.event === 'levelup') { big = F.LEVELS[q.level].icon; small = 'Level up!'; setRate(levelRates[q.level] || 1); }
+    else if (r.event === 'graduate') { big = '👑'; small = 'You did it! All stars!'; }
+    else { big = '👑'; small = 'Awesome!'; }
+  } else if (run) {
+    small = `Try at ${F.LEVELS[p.level].icon} speed for a star`;
+  }
+  run = null;
+  $('#doneBig').textContent = big; $('#doneSmall').textContent = small;
+  $('#done').classList.add('on');
+  setTimeout(() => $('#done').classList.remove('on'), 2600);
+}
+$('#done').onclick = () => $('#done').classList.remove('on');
 
+/* ---------------- per-frame drawing ---------------- */
 function draw(force) {
-  if (!model) return;
+  if (!model || !score || !clock) return;
   let beat = nowBeat();
   const total = model.totalBeats;
+  const playingNow = clock.playing();
 
-  // loop the section we were in when the loop started (or last jumped to)
-  if (loopOn) {
+  if (loopOn && !syncing) {
     if (!loopSec) loopSec = sectionAt(beat);
-    if (playing && loopSec && beat >= loopSec.endBeat) { seekBeat(preroll(loopSec.start), true); beat = nowBeat(); }
+    if (playingNow && loopSec && beat >= loopSec.endBeat) { seekBeat(preroll(loopSec.start), true); beat = nowBeat(); }
   }
-  if (playing && beat >= total) { pause(); seekBeat(total); showDone(); beat = total; }
+  if (playingNow && !syncing && beat >= total) { finish(); }
 
-  // metronome
   const bi = Math.floor(beat);
-  if (playing && lastBeatInt !== null && bi !== lastBeatInt && bi >= 0) click(F.playAt(model, bi).startBeat === bi);
+  const beepsOn = syncing ? $('#syBeeps').checked : metOn;
+  if (playingNow && beepsOn && lastBeatInt !== null && bi !== lastBeatInt && bi >= -8) click(F.playAt(model, Math.max(0, bi)).startBeat === bi);
   lastBeatInt = bi;
 
   const pb = F.playAt(model, Math.max(0, beat));
@@ -445,51 +715,38 @@ function draw(force) {
   const g = score.geom[pb.printedN];
   const frac = Math.max(0, Math.min(1, (beat - pb.startBeat) / pb.beats));
 
-  // current bar box + cursor
   if (pi !== lastPlayIndex || force) {
-    const u = g.unit;
     score.cur.setAttribute('x', g.x0 + 2); score.cur.setAttribute('width', g.x1 - g.x0 - 4);
     score.cur.setAttribute('y', g.y0 - 46); score.cur.setAttribute('height', 4 * SP + 62);
     lastPlayIndex = pi;
   }
   let cx;
-  if (g.unit.type === 'multi') {
-    const f = (pb.printedN - g.unit.n + frac) / g.unit.count;
-    cx = g.x0 + 16 + f * (g.x1 - g.x0 - 32);
-  } else {
-    cx = g.nx0 + 6 + frac * (g.nx1 - g.nx0 - 6);
-  }
+  if (g.unit.type === 'multi') cx = g.x0 + 16 + ((pb.printedN - g.unit.n + frac) / g.unit.count) * (g.x1 - g.x0 - 32);
+  else cx = g.nx0 + 6 + frac * (g.nx1 - g.nx0 - 6);
   score.cursor.setAttribute('x1', cx); score.cursor.setAttribute('x2', cx);
   score.cursor.setAttribute('y1', g.y0 - 14); score.cursor.setAttribute('y2', g.y0 + 4 * SP + 14);
 
-  // light up notes just played in this bar (for half a beat)
   const steps = pb.beats * 4, stepNow = frac * steps;
   const want = new Set();
-  for (let s = 0; s < steps; s++) {
-    if (s <= stepNow + 1e-6 && stepNow - s < 2 && beat >= 0) {
-      const k = pb.printedN + ':' + s;
-      if (score.chords.has(k)) want.add(k);
-    }
+  if (beat >= 0) for (let s = 0; s < steps; s++) {
+    if (s <= stepNow + 1e-6 && stepNow - s < 2) { const k = pb.printedN + ':' + s; if (score.chords.has(k)) want.add(k); }
   }
   for (const k of litKeys) if (!want.has(k)) score.chords.get(k).classList.remove('lit');
   for (const k of want) if (!litKeys.has(k)) score.chords.get(k).classList.add('lit');
   litKeys = want;
 
-  // keep current row ~20% from the top
   const box = $('#score');
   const scale = box.clientWidth / SVG_W;
   const target = Math.max(0, Math.min(score.height * scale - box.clientHeight, score.rowTops[g.row] * scale - box.clientHeight * 0.12));
   scrollY = force ? target : scrollY + (target - scrollY) * 0.18;
   $('#svg').style.transform = `translateY(${-scrollY}px)`;
 
-  // HUD
-  setText('hudBar', beat < 0 ? '預備' : `第 ${pb.printedN} 小節`);
+  setText('hudBar', beat < 0 ? 'Get ready' : `Bar ${pb.printedN}`);
   setText('hudSec', pb.section || '');
-  setText('pass', pb.totalPasses > 1 ? `第 ${pb.pass} / ${pb.totalPasses} 次` : '');
+  setText('pass', pb.totalPasses > 1 ? `Round ${pb.pass} of ${pb.totalPasses}` : '');
   const secIdx = model.sections.findIndex((s) => pi >= s.start && pi < s.end);
   document.querySelectorAll('#sections button').forEach((b) => b.classList.toggle('on', +b.dataset.i === secIdx));
 
-  // cue panel + kit
   const st = F.cueState(model, beat);
   const soon = st.next && st.next.beat - beat < 1 ? st.next.lanes : [];
   document.querySelectorAll('#kit .drum').forEach((d) => {
@@ -497,56 +754,34 @@ function draw(force) {
     d.classList.toggle('hit', st.flash.includes(l));
     d.classList.toggle('soon', !st.flash.includes(l) && soon.includes(l));
   });
-  let big = '', small = '', dots = 0;
-  if (st.mode === 'rest') { big = '😴'; dots = st.barsLeft; small = st.entry ? `第 ${st.entry.printedN} 小節開始打` : ''; }
-  else if (st.mode === 'countdown') { big = String(st.count); small = '準備'; }
-  else if (st.mode === 'go') { big = '打！'; }
-  else if (st.mode === 'end') { big = '🏁'; }
-  else { big = '🥁'; }
+  let big = '🥁', small = hudCache.statusSmallSticky || '', dots = 0;
+  if (st.mode === 'rest') { big = '😴'; dots = st.barsLeft; small = st.entry ? `Play at bar ${st.entry.printedN}` : ''; }
+  else if (st.mode === 'countdown') { big = String(st.count); small = 'Get ready'; }
+  else if (st.mode === 'go') { big = 'Go!'; small = ''; }
+  else if (st.mode === 'end') { big = '🏁'; small = ''; }
+  if (playingNow) hudCache.statusSmallSticky = '';
   setText('statusBig', big);
-  setText('statusSmall', small);
+  if (st.mode !== 'play' || playingNow) setText('statusSmall', small);
   const dotsKey = 'd' + dots;
   if (hudCache.dots !== dotsKey) {
     hudCache.dots = dotsKey;
-    $('#dots').innerHTML = dots > 0 && dots <= 12 ? '<i></i>'.repeat(dots) : dots > 12 ? `<span style="font-size:22px">還有 ${dots} 小節</span>` : '';
+    $('#dots').innerHTML = dots > 0 && dots <= 12 ? '<i></i>'.repeat(dots) : dots > 12 ? `<span style="font-size:20px">${dots} bars</span>` : '';
   }
+  if (syncing) setText('syncBar', beat < 0 ? 'Before bar 1' : `Bar ${pb.printedN} · beat ${Math.floor(beat - pb.startBeat) + 1}` + (pb.totalPasses > 1 ? ` · round ${pb.pass}` : ''));
 }
-
 function frame() { draw(false); requestAnimationFrame(frame); }
 
-function showDone() {
-  $('#done').classList.add('on');
-  setTimeout(() => $('#done').classList.remove('on'), 2200);
-}
-
-/* ---------------- loading songs ---------------- */
-function loadSong(text, save) {
-  let song;
-  try { song = JSON.parse(String(text).replace(/^\uFEFF/, '').trim()); } catch (e) { return { ok: false, msg: '這不是有效的譜資料（JSON）。若是貼上的，請確認整段都有複製到（從 { 到 }）；若是檔案，請確認選的是 Claude 給的 .json 檔。' }; }
-  let m;
-  try { m = F.prepare(song); } catch (e) { return { ok: false, msg: (e.errors || [e.message]).join('\n') }; }
-  model = m;
-  tm = F.makeTimeMap(song, m);
-  if (save) { try { localStorage.setItem(STORE, text); } catch (e) {} }
-  $('#empty').style.display = 'none';
-  setText('hudTitle', [song.title, song.artist].filter(Boolean).join(' · '));
-  $('#numBpm').value = Math.round(tm.bpm * 10) / 10;
-  pause(); seekBeat(0);
-  renderScore(); renderSections(); draw(true);
-  const sec = model.totalBeats * 60 / tm.bpm;
-  return { ok: true, msg: `已載入「${song.title || '未命名'}」：展開後 ${model.play.length} 小節，約 ${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}` };
-}
-
-/* ---------------- controls ---------------- */
-$('#btnPlay').onclick = () => (playing ? pause() : play());
-$('#btnStart').onclick = () => { if (!model) return; seekBeat(0); draw(true); };
-$('#btnLoop').onclick = () => { loopOn = !loopOn; loopSec = null; $('#btnLoop').classList.toggle('on', loopOn); };
-document.querySelectorAll('#speeds button').forEach((b) => (b.onclick = () => setRate(+b.dataset.rate)));
-$('#svg').addEventListener('click', (e) => { // tap a bar to jump there (paused or playing)
+/* ---------------- player controls ---------------- */
+$('#btnPlay').onclick = () => (clock && clock.playing() ? pause() : play());
+$('#btnStart').onclick = () => { if (!model) return; goToStart(); draw(true); };
+$('#btnLoop').onclick = () => { loopOn = !loopOn; loopSec = null; run = null; $('#btnLoop').classList.toggle('on', loopOn); };
+document.querySelectorAll('#speeds button').forEach((b) => (b.onclick = () => { const r = levelRates[+b.dataset.level]; if (r) setRate(r); }));
+$('#btnBack').onclick = () => { pause(); if (clock) clock.destroy(); clock = null; model = null; rec = null; show('library'); renderLibrary(); };
+$('#svg').addEventListener('click', (e) => {
   if (!model) return;
   const pt = e.currentTarget.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
   const p = pt.matrixTransform(e.currentTarget.getScreenCTM().inverse());
-  for (const [n, g] of Object.entries(score.geom)) {
+  for (const g of Object.values(score.geom)) {
     if (p.x >= g.x0 && p.x < g.x1 && p.y >= g.y0 - 60 && p.y < g.y0 + 70) {
       const cur = F.playAt(model, Math.max(0, nowBeat())).playIndex;
       const cands = model.play.filter((pb) => pb.printedN === g.unit.n);
@@ -556,63 +791,142 @@ $('#svg').addEventListener('click', (e) => { // tap a bar to jump there (paused 
     }
   }
 });
-document.addEventListener('keydown', (e) => { if (e.code === 'Space' && !$('#parent').classList.contains('on')) { e.preventDefault(); playing ? pause() : play(); } });
-
-// parent area: long-press 1.5 s
-let holdTimer = null;
-const gear = $('#btnGear');
-gear.addEventListener('pointerdown', () => {
-  gear.classList.add('hold');
-  holdTimer = setTimeout(() => { gear.classList.remove('hold'); openParent(); }, 1500);
-});
-['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => gear.addEventListener(ev, () => { clearTimeout(holdTimer); gear.classList.remove('hold'); }));
-gear.addEventListener('contextmenu', (e) => e.preventDefault());
-function openParent() {
-  if (playing) pause();
-  let saved = ''; try { saved = localStorage.getItem(STORE) || ''; } catch (e) {}
-  if (!$('#ta').value) $('#ta').value = saved;
-  $('#loadMsg').textContent = ''; $('#loadMsg').className = '';
-  $('#parent').classList.add('on');
-}
-$('#btnClose').onclick = () => $('#parent').classList.remove('on');
-$('#btnLoad').onclick = () => {
-  const r = loadSong($('#ta').value, true);
-  $('#loadMsg').textContent = r.msg; $('#loadMsg').className = r.ok ? 'ok' : 'err';
-};
-$('#btnPick').onclick = () => $('#file').click();
-$('#file').onchange = async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  try {
-    $('#ta').value = (await f.text()).replace(/^\uFEFF/, '').trim();
-  } catch (err) {
-    $('#loadMsg').textContent = '讀不到這個檔案。若是 Google Drive 的檔案，請確認已下載到這台 iPad（有網路）。';
-    $('#loadMsg').className = 'err';
-    return;
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && $('#player').classList.contains('on') && !document.querySelector('.overlay.on') && !syncing) {
+    e.preventDefault(); clock && clock.playing() ? pause() : play();
   }
-  e.target.value = '';
-  $('#btnLoad').onclick();
+});
+
+/* ---------------- grown-ups: song settings ---------------- */
+holdButton($('#songGear'), openSongParent);
+function openSongParent() {
+  if (!rec) return;
+  pause();
+  $('#spTitle').textContent = [rec.title, rec.artist].filter(Boolean).join(' · ');
+  $('#ytUrl').value = rec.youtubeId ? `https://youtu.be/${rec.youtubeId}` : '';
+  $('#chkMet').checked = metOn;
+  const n = (rec.sync.anchors || []).length;
+  $('#btnSync').disabled = !rec.youtubeId;
+  $('#syncState').textContent = !rec.youtubeId ? 'Add a video first.' : n >= 2 ? `✓ Synced (${n} points)` : n === 1 ? 'Only 1 point — add one more' : 'Not synced yet';
+  const p = rec.progress;
+  $('#progressTxt').textContent = `Level ${levelIcon(p)} ${starsTxt(p)} · played to the end ${p.plays || 0} time(s)`;
+  const song = JSON.parse(rec.json);
+  const guessed = model.repeats.filter((r) => r.assumed).map((r) => `bars ${r.from}–${r.to} ×${r.times}`);
+  $('#songNotes').textContent = `${model.play.length} bars (with repeats), score tempo ♩=${song.bpm}.` + (guessed.length ? ` Repeat counts that are guesses (shown with “?”): ${guessed.join(', ')}.` : '');
+  msg($('#songMsg'), '');
+  $('#btnDelete').dataset.armed = '';
+  $('#btnDelete').textContent = 'Delete song';
+  updateLenCheck();
+  $('#songParent').classList.add('on');
+}
+function updateLenCheck() {
+  const el = $('#lenCheck');
+  if (!rec || !el) return;
+  const d = clock && clock.kind === 'youtube' ? clock.duration() : 0;
+  if (!d) { el.textContent = ''; el.className = 'mut'; return; }
+  const scoreLen = tm.timeAt(model.totalBeats) - tm.timeAt(0);
+  const diff = Math.abs(d - scoreLen);
+  el.textContent = `Video ${fmtTime(d)} · score about ${fmtTime(scoreLen)}` + (diff > 10 ? ' — more than 10 s apart: maybe a different version of the song, or a repeat count is wrong.' : ' — looks right.');
+  el.className = diff > 10 ? 'warn' : 'ok';
+}
+$('#btnUseVideo').onclick = async () => {
+  const id = C.parseYouTubeId($('#ytUrl').value);
+  if (!id) return msg($('#songMsg'), "That doesn't look like a YouTube link.", 'err');
+  if (id !== rec.youtubeId) { rec.youtubeId = id; rec.sync = { anchors: [], offset: 0 }; await S.put(rec); rebuildTimeMap(); setupClock(); }
+  openSongParent();
+  msg($('#songMsg'), 'Video added. Next: Sync score with the music.', 'ok');
 };
-$('#chkMet').onchange = (e) => { metOn = e.target.checked; };
-$('#numBpm').onchange = (e) => {
-  if (!model) return;
-  const v = +e.target.value; if (!(v >= 30 && v <= 300)) return;
-  const b = nowBeat();
-  model.song.bpm = v; tm = F.makeTimeMap(model.song, model);
-  baseSec = tm.timeAt(b); basePerf = performance.now();
+$('#btnNoVideo').onclick = async () => { rec.youtubeId = null; await S.put(rec); setupClock(); openSongParent(); };
+$('#chkMet').onchange = async (e) => { metOn = e.target.checked; rec.metronome = metOn; await S.put(rec); };
+$('#btnResetStars').onclick = async () => { rec.progress = F.newProgress(); await S.put(rec); applyRates(clock.rates()); openSongParent(); };
+$('#btnReplace').onclick = () => pickFile(async (text, err) => {
+  if (err) return msg($('#songMsg'), err, 'err');
+  const p = parseSong(text);
+  if (p.err) return msg($('#songMsg'), p.err, 'err');
+  rec.json = text; rec.title = p.song.title || rec.title; rec.artist = p.song.artist || rec.artist;
+  await S.put(rec);
+  $('#songParent').classList.remove('on');
+  await openSong(rec.id);
+  openSongParent(); msg($('#songMsg'), 'Song data replaced. Sync and stars were kept.', 'ok');
+});
+$('#btnDelete').onclick = async () => {
+  const b = $('#btnDelete');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Tap again to delete'; return; }
+  await S.del(rec.id);
+  $('#songParent').classList.remove('on');
+  $('#btnBack').onclick();
 };
+
+/* ---------------- grown-ups: sync with the music ---------------- */
+$('#btnSync').onclick = () => {
+  if (!rec.youtubeId) return;
+  $('#songParent').classList.remove('on');
+  syncing = true;
+  document.body.classList.add('syncing');
+  renderCues();
+  $('#sync').classList.add('on');
+  ensureAudio();
+};
+function renderCues() {
+  const list = $('#cueList');
+  list.innerHTML = '';
+  const anchors = rec.sync.anchors || [];
+  model.cues.forEach((c) => {
+    const a = anchors.find((x) => x.bar === c.playIndex);
+    const div = document.createElement('div');
+    div.className = 'cue';
+    div.innerHTML = `<div class="lbl">${esc(c.label)}<small>bar ${c.bar}${c.pass > 1 ? ', round ' + c.pass : ''}</small></div><span class="t">${a ? fmtTime(a.sec) + '.' + String(Math.floor((a.sec % 1) * 10)) : '—'}</span><button class="tap">Now!</button><button class="clr" aria-label="Clear">✕</button>`;
+    div.querySelector('.tap').onclick = async () => {
+      const t = clock.time();
+      rec.sync.anchors = anchors.filter((x) => x.bar !== c.playIndex).concat([{ bar: c.playIndex, sec: Math.max(0, t - (rec.sync.offset || 0)) }]).sort((x, y) => x.bar - y.bar);
+      await S.put(rec); rebuildTimeMap(); renderCues();
+    };
+    div.querySelector('.clr').onclick = async () => { rec.sync.anchors = anchors.filter((x) => x.bar !== c.playIndex); await S.put(rec); rebuildTimeMap(); renderCues(); };
+    list.appendChild(div);
+  });
+  $('#offTxt').textContent = `${(rec.sync.offset || 0) >= 0 ? '+' : ''}${(rec.sync.offset || 0).toFixed(2)} s`;
+}
+$('#syPlay').onclick = () => { if (clock.playing()) { clock.pause(); } else { ensureAudio(); clock.play(); } };
+$('#syBack').onclick = () => clock.seek(Math.max(0, clock.time() - 5));
+$('#syFwd').onclick = () => clock.seek(clock.time() + 5);
+$('#sySlow').onclick = () => { const r = rate === 0.5 ? (levelRates[2] || 1) : 0.5; setRate(r); $('#sySlow').textContent = rate === 0.5 ? '1×' : '0.5×'; };
+document.querySelectorAll('[data-nudge]').forEach((b) => (b.onclick = async () => {
+  rec.sync.offset = Math.round(((rec.sync.offset || 0) + +b.dataset.nudge) * 100) / 100;
+  await S.put(rec); rebuildTimeMap(); renderCues();
+}));
+$('#syDone').onclick = () => {
+  syncing = false;
+  document.body.classList.remove('syncing');
+  $('#sync').classList.remove('on');
+  clock.pause();
+  applyRates(clock.rates());
+  $('#sySlow').textContent = '0.5×';
+  goToStart(); draw(true);
+  openSongParent();
+};
+setInterval(() => {
+  if (!syncing || !clock) return;
+  $('#syPlay').textContent = clock.playing() ? '⏸ Pause' : '▶ Play';
+}, 250);
+
 window.addEventListener('resize', () => draw(true));
-window.FDT_DEBUG = { seek: (b) => { seekBeat(b); draw(true); }, get model() { return model; } };
+window.FDT_DEBUG = { seek: (b) => { seekBeat(b); draw(true); }, ff: (b) => clock.seek(tm.timeAt(b)), get run() { return run; }, get model() { return model; }, get rec() { return rec; }, get clock() { return clock; }, finish, openSong, addSong: (t) => addSong(t, $('#addMsg')) };
 
 /* ---------------- start ---------------- */
 (async () => {
-  let saved = null; try { saved = localStorage.getItem(STORE); } catch (e) {}
-  if (saved && loadSong(saved, false).ok) { /* loaded */ }
-  else {
-    try { // local development only; samples/ is not published
-      const r = await fetch('samples/dance-monkey.json', { cache: 'no-store' });
-      if (r.ok) loadSong(await r.text(), false);
-    } catch (e) {}
+  S.persist();
+  let list = await S.list();
+  // migrate the single song saved by the first version
+  try {
+    const old = localStorage.getItem('fdt.song.v2');
+    if (old) { if (!parseSong(old).err) await addSong(old, $('#addMsg')); localStorage.removeItem('fdt.song.v2'); list = await S.list(); }
+  } catch (e) {}
+  if (!list.length) { // local development only: samples/ is not published
+    for (const f of ['samples/dance-monkey.json', 'samples/end-of-beginning.json']) {
+      try { const r = await fetch(f, { cache: 'no-store' }); if (r.ok) await addSong(await r.text(), $('#addMsg')); } catch (e) {}
+    }
   }
+  await renderLibrary();
   requestAnimationFrame(frame);
 })();
 })();

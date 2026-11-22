@@ -8,6 +8,7 @@
 ## 0. 工作約定
 
 - 用**繁體中文**和使用者（家長）溝通；程式碼註解與變數名用英文。
+- **App 介面一律英文**（2026-11-21 家長決定）：按鈕、提示、錯誤訊息、譜資料裡會顯示的文字（`cues[].label`、段落名）都用英文。
 - **單檔 HTML 為主**（`index.html`，必要時加少量輔助檔）。**不引入建置工具、不用框架**。
 - 目標裝置：**iPad Safari，橫放，放在譜架上**。使用者是小孩，家長負責加歌與對拍。按鈕要大、播放頁操作要少。
 - **老師的譜有版權，只供個人使用。不要把譜資料（PDF、轉出來的 JSON）commit 進公開 repo**；`.gitignore` 加 `songs/`、`samples/`。譜只存在 iPad 本機（IndexedDB）。
@@ -38,7 +39,9 @@
 | 讀錯怎麼辦 | 練習時覺得怪 → 記下小節號問 Claude，或請老師看一眼；App 有小節號方便溝通 |
 | 歌的速度 | 大多是流行歌，速度固定 |
 | 託管 | GitHub Pages，repo：`jellyfruit/follow-drum-tab` |
-| 儲存 | IndexedDB，提供匯出備份 |
+| 儲存 | IndexedDB（`store.js`），提供備份匯出／匯入 |
+| 譜檔存放 | 家長的 Google Drive：`My Drive/07. MUSIC/drum_tab`（資料夾 ID `1Re0F0x9tFlATe3kPu7k3lTmLT9ikyaOk`），老師的 PDF 和轉好的 .json 都放這裡。Claude 轉好新譜後**直接存進這個資料夾**（家長已同意）；iPad 用「Choose song file」從 Files → Drive 載入。 |
+| 介面語言 | 英文 |
 | 練習紀錄 | 練完一首：完成動畫＋星星，記在曲庫（依完成速度給不同星星，見 4.7） |
 | 小孩年齡 | **年紀小、識字少** → 圖示、顏色、聲音優先，少用文字 |
 | 風格 | **遊戲感（太鼓達人風）**：深色背景、鮮豔顏色、大按鈕、動畫 |
@@ -265,11 +268,11 @@ for entry in form:
 
 ## 6. 加一首新歌的流程（家長做，約 5 分鐘）
 
-1. 把老師的 PDF 傳給 Claude（聊天），說「轉成鼓譜卡拉OK 的 JSON」。Claude 依第 7 節規則輸出 JSON、**不確定清單**、展開後小節數與估計長度。
+1. 把老師的 PDF 傳給 Claude（聊天），或說「drum_tab 裡的某某 PDF」，請 Claude 轉成 JSON。Claude 轉完存進 Google Drive 的 drum_tab 資料夾。Claude 依第 7 節規則輸出 JSON、**不確定清單**、展開後小節數與估計長度。
 2. 對照 YouTube 影片長度，差太多就請 Claude 重看反覆次數。
-3. App → 長按 ⚙ →「📂 從檔案／Google Drive 選譜」（iPad「檔案」App 的 Google Drive 位置，需安裝 Google Drive App），或貼上 JSON。App 驗證格式，錯誤用中文說明。家長習慣把 Claude 轉好的 .json 存到 Google Drive。
-4. 貼 YouTube 連結。
-5. 對拍：照 `cues` 提示，聽到「副歌開始」時按一下，至少前後各一個；微調到節拍器嗶聲和歌的鼓聲對齊。
+3. App 曲庫頁 → 長按 ⚙ →「📂 Choose song file (Files / Google Drive)」（iPad「檔案」App 的 Drive 位置，需安裝 Google Drive App），或貼上 JSON。
+4. 打開這首歌 → 長按 ⚙ → 貼 YouTube 連結 →「Use video」；App 會比對影片長度和譜的長度。
+5. 「🎯 Sync score with the music」：播放影片，聽到 cue（例如 Chorus 1 starts）時按 Now!，至少前後各一個；用 ±0.02／±0.1 s 微調到嗶聲和歌的鼓聲對齊。
 6. 存進曲庫。之後練習時覺得哪裡怪，記下小節號問 Claude 或老師。
 
 ### 6.1 適用範圍與選影片（App 的「加歌」畫面要顯示這些提示）
@@ -287,7 +290,9 @@ for entry in form:
 - **多小節休止**（粗橫線加數字）：`{"n": 起, "to": 起+數字−1, "rest": true}`，並寫進 `multiRest`。
 - **反覆** `|: :|`：`form` 用 `times`（總次數）。沒標次數時暫定 2，加 `"assumed": true`，請使用者對照影片長度確認。
 - 小節號用譜上印的，**不計反覆**。段落標題寫進 `section`。
-- 依段落產生 2–3 個 `cues`（一前一後最重要）。
+- 依段落產生 2–3 個 `cues`（一前一後最重要）。**`label` 用英文**，讓不懂鼓的人聽得出來（例如 `Chorus 1 starts`、`Last chorus: the drums stop, only singing`）。沒有 cues 時 App 會用各段落開頭（`<Section> starts`）。
+- `notes` 和 `bars[].note` 也用英文。
+- 轉好後存進家長 Google Drive 的 `drum_tab` 資料夾（見第 2 節），檔名用小寫加連字號，例如 `dance-monkey.json`。
 - 全音符畫在某個鼓的位置：第 1 拍打一下該鼓。
 - **換行**：紙本每行小節數不固定時，寫 `rowBreaks`（每行第一個小節號，第 1 行不用寫）。
 - **拍號變化**：個別小節是 2/4、3/4 時寫 `beats`，`p` 用對應長度。
@@ -301,7 +306,10 @@ for entry in form:
 
 | 檔案 | 說明 |
 |---|---|
-| `index.html` | **正式 App**（Stage 2 完成）：自繪五線譜（每行 4 格、彩色音符、休止、多小節休止、反覆記號＋次數）、音符亮起與游標、鼓組圖提示、休止😴＋圓點＋數字倒數、「第 N / M 次」、段落條（點一下跳過去）、從頭／播放／這段再一次／🐢🚶🐇、⚙ 長按家長區（貼上或選檔載入 JSON、節拍器、BPM）。時鐘目前是內建節拍器，尚未接 YouTube。譜存在 localStorage。本機開發時若 `samples/dance-monkey.json` 存在會自動載入。 |
+| `index.html` | **正式 App**（2026-11-21 Stage 3 核心完成）：曲庫首頁（歌單＋動物＋星星）、播放頁（左上返回）、YouTube 小窗與同步、家長區（加歌：選檔／Google Drive／貼上；備份匯出匯入；每首歌：YouTube 連結＋長度比對、🎯 對拍、節拍器、重設星星、換檔、刪除）、星星升級。以下為 Stage 2 內容：自繪五線譜（每行 4 格、彩色音符、休止、多小節休止、反覆記號＋次數）、音符亮起與游標、鼓組圖提示、休止😴＋圓點＋數字倒數、「第 N / M 次」、段落條（點一下跳過去）、從頭／播放／這段再一次／🐢🚶🐇、⚙ 長按家長區（貼上或選檔載入 JSON、節拍器、BPM）。時鐘目前是內建節拍器，尚未接 YouTube。譜存在 localStorage。本機開發時若 `samples/dance-monkey.json` 存在會自動載入。 |
+| `store.js` | 曲庫儲存：IndexedDB（失敗時退回 localStorage）。記錄：`{id,title,artist,json,youtubeId,sync:{anchors:[{bar,sec}],offset},metronome,progress:{level,stars,graduated,plays}}`。 |
+| `clock.js` | `InternalClock`（沒影片時）與 `YouTubeClock`（IFrame API、輪詢＋插值、倍速、英文錯誤訊息）；`parseYouTubeId`。 |
+| `manifest.webmanifest`、`icons/` | 加到主畫面用（PWA）。 |
 | `core.js` | 純邏輯（無 DOM）：validate（中文錯誤訊息）、prepare（譜上小節、版面格、播放順序、事件、段落、cues）、TimeMap（線性／錨點分段線性）、calibrate、cueState、engraveBar。瀏覽器用 `window.FDT`，Node 用 `require`。 |
 | `tests/core.test.js` | `node tests/core.test.js`：合成測試＋黃金測試（若 `samples/dance-monkey.json` 存在）。 |
 | `spike.html` | **Spike**：YouTube 內嵌、讀數更新間隔與插值誤差、支援的倍速、拍點圓點比對。**尚未在 iPad 實測**。 |
@@ -330,13 +338,15 @@ for entry in form:
 ### Stage 3 — MVP
 
 - [x] Expander＋驗證＋黃金測試（`core.js`、`tests/core.test.js`）
-- [ ] JSON 匯入（中文錯誤訊息）、曲庫（IndexedDB）、匯出備份
-- [ ] YouTubeClock＋時間軸對拍編輯器（錨點拖曳，4.8）
-- [ ] NotationView 接上 YouTubeClock、反覆跳行、「第 N 次」
-- [ ] CueCard（鼓組圖）、段落條、休止圓點＋數字倒數
-- [ ] 家長區長按進入；完成動畫＋星星紀錄
-- [ ] 練習選單：整體速度（4.6）、A-B 循環、節拍器、跳到段落
-- [ ] 加到主畫面（PWA manifest、全螢幕）
+- [x] JSON 匯入（英文錯誤訊息）、曲庫（IndexedDB）、備份匯出／匯入
+- [x] YouTubeClock＋聽段落對拍（Now! 按鈕→錨點）＋整體偏移微調＋嗶聲檢查
+- [ ] 時間軸拖曳對拍編輯器（4.8；目前用 Now!＋微調代替）
+- [x] NotationView 接上 YouTubeClock、反覆跳行、「Round N of M」
+- [x] CueCard（鼓組圖）、段落條、休止圓點＋數字倒數
+- [x] 家長區長按進入；完成動畫＋星星升級（🐢→🚶→🐇→👑）
+- [x] 整體速度（依 YouTube 支援的倍速顯示 🐢🚶🐇）、這段再一次、節拍器、跳到段落
+- [x] 加到主畫面（PWA manifest、圖示）
+- [ ] **在真的 iPad＋YouTube 上實測**（開發環境連不到 YouTube，只用假播放器測過流程）
 
 驗收：小孩用 Dance Monkey 從頭到尾跟著亮起的音符打，進場、休止都知道。
 
