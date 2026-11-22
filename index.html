@@ -103,6 +103,25 @@ button{font:inherit;color:inherit;border:none;background:none;cursor:pointer}
 #empty b{color:var(--ink)}
 #done{flex-direction:column;font-size:90px;color:var(--yel);font-weight:800}
 #done small{font-size:24px;color:var(--ink)}
+
+/* narrow screens (phone, iPad split view): stack panels, wrap the button row */
+@media (max-width:700px){
+  body{grid-template-rows:48px minmax(0,1fr) 50px auto;gap:6px}
+  #hud{padding:0 10px;gap:8px}
+  #hudBar{font-size:16px}#hudSec{font-size:14px}#hudTitle{display:none}
+  #main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 120px}
+  #side{grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr)}
+  #pass{display:none}
+  #statusBig{font-size:44px}
+  #sections button{min-width:48px;font-size:12px}
+  #controls{flex-wrap:wrap;gap:6px}
+  .big{min-width:0;flex:1;height:64px;font-size:26px}
+  .big small{font-size:11px;margin-top:3px}
+  #btnPlay{flex:1.6;font-size:34px}
+  #btnGear{min-width:0}
+  #speeds{order:5;flex:1 1 100%;height:56px}
+  #speeds button{font-size:26px}
+}
 </style>
 </head>
 <body>
