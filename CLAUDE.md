@@ -295,7 +295,10 @@ for entry in form:
 
 | 檔案 | 說明 |
 |---|---|
-| `index.html`（實驗頁） | **Spike**：YouTube 內嵌、讀數更新間隔與插值誤差統計、拍點圓點比對。語法檢查通過，**尚未在 iPad 實測**。 |
+| `index.html` | **正式 App**（Stage 2 完成）：自繪五線譜（每行 4 格、彩色音符、休止、多小節休止、反覆記號＋次數）、音符亮起與游標、鼓組圖提示、休止😴＋圓點＋數字倒數、「第 N / M 次」、段落條（點一下跳過去）、從頭／播放／這段再一次／🐢🚶🐇、⚙ 長按家長區（貼上或選檔載入 JSON、節拍器、BPM）。時鐘目前是內建節拍器，尚未接 YouTube。譜存在 localStorage。本機開發時若 `samples/dance-monkey.json` 存在會自動載入。 |
+| `core.js` | 純邏輯（無 DOM）：validate（中文錯誤訊息）、prepare（譜上小節、版面格、播放順序、事件、段落、cues）、TimeMap（線性／錨點分段線性）、calibrate、cueState、engraveBar。瀏覽器用 `window.FDT`，Node 用 `require`。 |
+| `tests/core.test.js` | `node tests/core.test.js`：合成測試＋黃金測試（若 `samples/dance-monkey.json` 存在）。 |
+| `spike.html` | **Spike**：YouTube 內嵌、讀數更新間隔與插值誤差、支援的倍速、拍點圓點比對。**尚未在 iPad 實測**。 |
 | `prototype/prototype-v0.html` | 早期原型（太鼓式橫向軌道、本機音檔）。主畫面已改為五線譜，但其中的時鐘、A-B 循環、節拍器、休止倒數邏輯可沿用。 |
 | `samples/dance-monkey.json` | 樣本譜資料（版權，不進公開 repo）。 |
 | `samples/Tones_and_I_-_Dance_Monkey_Drums_Easy.pdf` | 樣本 PDF，用來對照自繪譜面是否和紙本一致（版權，不進公開 repo）。 |
@@ -305,21 +308,21 @@ for entry in form:
 
 ### Stage 1 — Spike：YouTube 時間精度（現在要做的）
 
-1. `index.html` 放 repo 根目錄；Settings → Pages → Deploy from a branch → `main` / root。
-2. iPad Safari 開 `https://jellyfruit.github.io/follow-drum-tab/`，貼 Dance Monkey 的 YouTube 連結，播 1–3 分鐘。
+1. Settings → Pages → Deploy from a branch → `main` / root。
+2. iPad Safari 開 `https://jellyfruit.github.io/follow-drum-tab/spike.html`，貼 Dance Monkey 的 YouTube 連結，播 1–3 分鐘。
 3. 在明顯的拍點按「這是一拍」，看圓點是否跟著聲音、會不會抖。
 4. 回報統計：讀數更新間隔、插值誤差、倒退次數；以及影片能否內嵌、廣告時的狀態。
 5. **檢查速度**：在實驗頁加上顯示 `getAvailablePlaybackRates()` 的結果，並試設 0.85、0.9，讀回 `getPlaybackRate()` 看實際生效值；在 0.75× 下確認圓點仍跟得上聲音。
 
 驗收：誤差約 ±50 ms 內、不抖動。不通過就先討論備案。
 
-### Stage 2 — 譜面渲染（可與 Stage 1 並行，不需要 YouTube）
+### Stage 2 — 譜面渲染（2026-11-21 完成，待家長在 iPad 上確認）
 
 用 `dance-monkey.json` 畫出整首譜，和樣本 PDF 並排比對：小節號、休止、反覆記號、音符位置一致。再接上 InternalClock 讓音符隨節拍器亮起。驗收：家長看了覺得「跟老師的譜一樣，而且看得出現在在哪」。
 
 ### Stage 3 — MVP
 
-- [ ] Expander＋驗證＋黃金測試
+- [x] Expander＋驗證＋黃金測試（`core.js`、`tests/core.test.js`）
 - [ ] JSON 匯入（中文錯誤訊息）、曲庫（IndexedDB）、匯出備份
 - [ ] YouTubeClock＋時間軸對拍編輯器（錨點拖曳，4.8）
 - [ ] NotationView 接上 YouTubeClock、反覆跳行、「第 N 次」
