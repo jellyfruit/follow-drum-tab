@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YouTube 時間精度實驗</title>
+<style>
+:root{--bg:#12141a;--panel:#1c2029;--line:#2b3140;--txt:#e8ecf3;--mut:#8b94a7;--acc:#ff9a3c}
+*{box-sizing:border-box}
+body{margin:0;padding:10px;background:var(--bg);color:var(--txt);font:15px -apple-system,"PingFang TC",sans-serif}
+h1{font-size:17px;margin:6px 0 10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+input,select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+input[type=text]{flex:1;min-width:180px}
+input[type=number]{width:90px}
+button.pri{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+#wrap{position:relative;width:100%;max-width:560px;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+#wrap iframe,#player{width:100%;height:100%}
+#beat{width:100%;max-width:560px;height:90px;border-radius:10px;background:var(--panel);display:flex;align-items:center;justify-content:center;gap:16px;font-size:28px;font-weight:700}
+#dot{width:56px;height:56px;border-radius:50%;background:var(--acc);opacity:.1}
+pre{background:#0d1015;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12.5px;line-height:1.5;white-space:pre-wrap}
+.mut{color:var(--mut);font-size:13px}
+#msg{color:#ff7b7b}
+</style>
+</head>
+<body>
+<h1>🥁 YouTube 時間精度實驗</h1>
+<div class="row">
+  <input type="text" id="url" placeholder="貼上 YouTube 連結或影片 ID">
+  <button class="pri" id="load">載入</button>
+</div>
+<div id="msg"></div>
+<div id="wrap"><div id="player"></div></div>
+
+<div class="row">
+  <span>BPM</span><input type="number" id="bpm" value="96" step="0.1">
+  <span>第1拍(秒)</span><input type="number" id="off" value="0" step="0.01">
+  <select id="rate"><option>0.5</option><option>0.75</option><option>0.85</option><option>0.9</option><option selected>1</option></select>
+</div>
+<div class="row">
+  <button class="pri" id="mark">聽到拍點時按我＝這是一拍</button>
+</div>
+<div id="beat"><div id="dot"></div><span id="beatTxt">拍 —</span></div>
+<div class="mut">用法：播放後，在某個明顯的拍點按上面的按鈕設定拍位置，然後看圓點是否一直跟著聲音閃；30 秒到 3 分鐘後再看是否漸漸偏掉。</div>
+
+<h1 style="margin-top:16px">讀數統計</h1>
+<pre id="stats">尚未播放</pre>
+<button id="reset">重設統計</button>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+let player=null,ready=false,state=-1,rate=1;
+// 讀數追蹤
+let lastVal=null,lastChangePerf=0,smooth=0;
+let intervals=[],jumpsBack=0,errs=[],polls=0,changes=0;
+
+function parseId(s){
+  s=s.trim();
+  const m=s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  if(m)return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(s)?s:null;
+}
+const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
+let apiReady=false,pendingId=null;
+window.onYouTubeIframeAPIReady=()=>{apiReady=true;if(pendingId)create(pendingId);};
+
+function create(id){
+  $('#msg').textContent='';
+  if(player){try{player.destroy();}catch(e){} $('#wrap').innerHTML='<div id="player"></div>';player=null;}
+  ready=false;resetStats();
+  player=new YT.Player('player',{
+    videoId:id,
+    playerVars:{playsinline:1,rel:0,modestbranding:1,origin:location.origin},
+    events:{
+      onReady:()=>{ready=true;player.setPlaybackRate(rate);},
+      onPlaybackRateChange:e=>{rate=e.data;},
+      onStateChange:e=>{state=e.data;if(state===1){lastVal=null;}},
+      onError:e=>{
+        const c=e.data;
+        $('#msg').textContent=c===101||c===150?'這支影片不允許內嵌播放（錯誤 '+c+'）。':
+          c===153||c===152?'內嵌設定錯誤（錯誤 '+c+'）：請確認是從網址（https）開啟，而不是本機檔案。':
+          '播放器錯誤：'+c;
+      }
+    }
+  });
+}
+$('#load').onclick=()=>{
+  const id=parseId($('#url').value);
+  if(!id){$('#msg').textContent='看不出影片 ID，請貼完整連結。';return;}
+  if(apiReady)create(id);else pendingId=id;
+};
+$('#rate').onchange=e=>{const r=+e.target.value;if(ready){player.setPlaybackRate(r);rate=player.getPlaybackRate()||r;}else rate=r;resetStats();};
+$('#reset').onclick=resetStats;
+function resetStats(){intervals=[];jumpsBack=0;errs=[];polls=0;changes=0;lastVal=null;}
+
+// 目前「平滑後」的影片時間
+function now(){
+  if(!ready)return 0;
+  const raw=player.getCurrentTime();
+  polls++;
+  const p=performance.now();
+  if(state===1){
+    if(lastVal===null||raw!==lastVal){
+      if(lastVal!==null){
+        const pred=lastVal+(p-lastChangePerf)/1000*rate;
+        errs.push(Math.abs(pred-raw)*1000);
+        intervals.push(p-lastChangePerf);
+        if(raw<lastVal)jumpsBack++;
+        changes++;
+      }
+      lastVal=raw;lastChangePerf=p;
+      smooth=raw;
+    }else{
+      smooth=lastVal+(p-lastChangePerf)/1000*rate;
+    }
+  }else{
+    smooth=raw;lastVal=null;
+  }
+  return smooth;
+}
+$('#mark').onclick=()=>{if(ready){$('#off').value=now().toFixed(3);}};
+
+function pct(a,q){if(!a.length)return NaN;const s=a.slice().sort((x,y)=>x-y);return s[Math.min(s.length-1,Math.floor(q*s.length))];}
+let lastStats=0;
+function loop(){
+  const t=now();
+  const bpm=+$('#bpm').value||96,off=+$('#off').value||0;
+  const bp=(t-off)*bpm/60,frac=((bp%1)+1)%1;
+  $('#dot').style.opacity=String(Math.max(0.1,1-frac*3));
+  $('#dot').style.transform='scale('+(1+Math.max(0,0.5-frac*2)).toFixed(2)+')';
+  const bar=Math.floor(bp/4),beat=((Math.floor(bp)%4)+4)%4+1;
+  $('#beatTxt').textContent=ready?`第 ${bar+1} 小節 · 拍 ${beat}   (${t.toFixed(2)}s)`:'拍 —';
+  const p=performance.now();
+  if(p-lastStats>500){
+    lastStats=p;
+    $('#stats').textContent=
+`播放器狀態：${state}（1=播放中）  要求倍速：${$('#rate').value}  實際倍速：${ready?player.getPlaybackRate():'-'}
+支援的倍速：${ready&&player.getAvailablePlaybackRates?JSON.stringify(player.getAvailablePlaybackRates()):'-'}
+輪詢次數：${polls}  讀數變動次數：${changes}
+讀數更新間隔 (ms)：中位 ${pct(intervals,.5).toFixed(0)}  P90 ${pct(intervals,.9).toFixed(0)}  最大 ${intervals.length?Math.max(...intervals).toFixed(0):'NaN'}
+插值預測誤差 (ms)：中位 ${pct(errs,.5).toFixed(0)}  P90 ${pct(errs,.9).toFixed(0)}  最大 ${errs.length?Math.max(...errs).toFixed(0):'NaN'}
+讀數倒退次數：${jumpsBack}
+裝置：${navigator.userAgent.replace(/\(.*?\)/,'').slice(0,60)}`;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

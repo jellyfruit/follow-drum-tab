@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>鼓譜卡拉OK</title>
+<style>
+:root{--bg:#12141a;--panel:#1c2029;--line:#2b3140;--txt:#e8ecf3;--mut:#8b94a7;--acc:#ff9a3c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif;font-size:15px}
+body{padding:env(safe-area-inset-top) 10px calc(24px + env(safe-area-inset-bottom))}
+h1{font-size:17px;margin:10px 0 8px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:10px 0;border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:10px;font-size:15px}
+.tabs button.on{color:#111;background:var(--acc);border-color:var(--acc);font-weight:700}
+.view{display:none}.view.on{display:block}
+button,select,input,textarea{font:inherit;color:var(--txt)}
+.btn{padding:10px 14px;border:1px solid var(--line);background:var(--panel);border-radius:10px;color:var(--txt)}
+.btn.pri{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+.btn.sm{padding:7px 10px;font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.mut{color:var(--mut);font-size:13px}
+canvas{width:100%;height:clamp(240px,46vh,360px);display:block;border-radius:12px;border:1px solid var(--line);background:#12161d}
+#nextInfo{margin:8px 0;padding:10px 12px;background:var(--panel);border-radius:10px;font-size:17px;font-weight:600;min-height:44px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+input[type=number],select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 8px;width:84px}
+select{width:auto}
+details{background:var(--panel);border-radius:10px;padding:8px 12px;margin-top:8px}
+summary{cursor:pointer;color:var(--mut)}
+.half{display:grid;grid-template-columns:46px repeat(8,1fr);gap:3px;margin-bottom:12px}
+.hd{text-align:center;font-size:12px;color:var(--mut);align-self:end}.hd.b{color:var(--txt);font-weight:700}
+.lab{border:none;border-left:4px solid var(--c);background:var(--panel);color:var(--txt);border-radius:6px;font-size:12px;padding:0}
+.cell{height:38px;border:1px solid var(--line);background:#171b23;border-radius:6px;padding:0}
+.cell.b{background:#1d2330}
+.cell.on{background:var(--c);border-color:var(--c)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.chip{min-width:34px;padding:7px 0;border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:8px;font-size:13px}
+.chip.has{color:var(--txt);border-color:#566;background:#252b38}
+.chip.cur{outline:2px solid var(--acc)}
+textarea{width:100%;height:200px;background:#0d1015;border:1px solid var(--line);border-radius:8px;padding:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.lbl{display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<h1>🥁 鼓譜卡拉OK</h1>
+<div class="tabs">
+  <button data-v="play" class="on">播放</button>
+  <button data-v="edit">編輯譜</button>
+  <button data-v="song">曲目/資料</button>
+</div>
+
+<!-- 播放 -->
+<section id="v-play" class="view on">
+  <canvas id="cv"></canvas>
+  <div id="nextInfo">—</div>
+  <div class="row">
+    <button id="btnReset" class="btn">⏮</button>
+    <button id="btnPlay" class="btn pri" style="flex:1">▶ 播放</button>
+    <select id="selRate"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="0.9">0.9×</option><option value="1" selected>1×</option></select>
+  </div>
+  <input type="range" id="sl" min="0" max="7" value="0">
+  <div class="row mut"><span id="barLive">第 1 小節</span><span style="flex:1"></span><span id="audioLive">無音樂（用內建計時）</span></div>
+  <div class="row">
+    <label class="lbl"><input type="checkbox" id="loopOn"> 循環 第</label>
+    <input type="number" id="loopA" min="1" value="1" style="width:60px"> 到
+    <input type="number" id="loopB" min="1" value="2" style="width:60px"> 小節
+    <label class="lbl" style="margin-left:auto"><input type="checkbox" id="metOn"> 節拍器</label>
+  </div>
+  <details>
+    <summary>對拍調整（BPM／第1拍位置）</summary>
+    <div class="row"><span>BPM</span><input type="number" id="bpm" step="0.1" min="30" max="300"><button id="tap" class="btn sm">Tap 打拍子</button></div>
+    <div class="row"><span>第1拍時間(秒)</span><input type="number" id="off" step="0.01">
+      <button class="btn sm" data-off="-0.05">−.05</button><button class="btn sm" data-off="-0.01">−.01</button><button class="btn sm" data-off="0.01">+.01</button><button class="btn sm" data-off="0.05">+.05</button></div>
+    <div class="row"><button id="mark" class="btn sm">播放中聽到第1小節第1拍時按我</button></div>
+    <div class="mut">譜面跟音樂差一點點？播放中看音符到線的時間，用 ± 微調第1拍位置即可。</div>
+  </details>
+</section>
+
+<!-- 編輯 -->
+<section id="v-edit" class="view">
+  <div class="row">
+    <button id="bPrev" class="btn sm">◀</button>
+    <b id="barLbl" style="flex:1;text-align:center">第 1 / 1 小節</b>
+    <button id="bNext" class="btn sm">▶</button>
+  </div>
+  <div id="grid"></div>
+  <div class="mut">點格子開關音符；點左邊鼓名可快速填滿（四分→八分→十六分→清空）。</div>
+  <div class="row">
+    <button id="bCopy" class="btn sm">複製上一小節</button>
+    <button id="bClear" class="btn sm">清空此小節</button>
+    <button id="bIns" class="btn sm">後面插入空小節</button>
+    <button id="bDel" class="btn sm">刪除此小節</button>
+    <button id="bUndo" class="btn sm">↩ 復原</button>
+  </div>
+  <div class="row"><button id="bTry" class="btn pri" style="flex:1">▶ 從這個小節試奏</button></div>
+  <div class="chips" id="chips"></div>
+</section>
+
+<!-- 曲目 -->
+<section id="v-song" class="view">
+  <div class="row"><b>音樂檔</b></div>
+  <div class="row"><input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav"><button id="rmAudio" class="btn sm">移除</button></div>
+  <div class="mut" id="fileInfo">還沒載入音樂。載入後，播放就會跟著音樂走。</div>
+  <div class="row" style="margin-top:18px"><b>譜資料（可複製／貼上）</b></div>
+  <textarea id="ta" spellcheck="false"></textarea>
+  <div class="row">
+    <button id="exp" class="btn sm">更新文字</button>
+    <button id="copy" class="btn sm">複製</button>
+    <button id="imp" class="btn pri sm">匯入貼上的內容</button>
+    <button id="sample" class="btn sm">還原範例譜</button>
+  </div>
+  <div class="mut" id="msg"></div>
+  <div class="mut" style="margin-top:10px">每小節 6 行，順序：銅鈸、踩鑔、高嗵、小鼓、低嗵、底鼓；16 格＝十六分音符，x＝打，-＝不打。</div>
+</section>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+const LANES=[
+ {name:'銅鈸',c:'#f5c542'},{name:'踩鑔',c:'#4cd3e0'},{name:'高嗵',c:'#6bd66b'},
+ {name:'小鼓',c:'#ff5d5d'},{name:'低嗵',c:'#b583ff'},{name:'底鼓',c:'#ff9a3c'}];
+const KEY='drumkara.v1';
+const mkBar=()=>LANES.map(()=>Array(16).fill(0));
+
+function sample(){
+  const groove=odd=>{const b=mkBar();for(let s=0;s<16;s+=2)b[1][s]=1;b[5][0]=1;b[5][8]=1;if(odd)b[5][10]=1;b[3][4]=1;b[3][12]=1;return b;};
+  const fill=b=>{for(let s=12;s<16;s++){b[1][s]=0;b[3][s]=0;b[5][s]=0;}b[3][12]=1;b[3][13]=1;b[2][14]=1;b[4][15]=1;return b;};
+  const crash=()=>{const b=groove(0);b[0][0]=1;return b;};
+  return {bpm:100,offset:0,bars:[mkBar(),groove(0),groove(1),fill(groove(0)),mkBar(),mkBar(),crash(),fill(groove(1))]};
+}
+function fromObj(o){
+  if(!o||!Array.isArray(o.bars)||!o.bars.length)throw new Error('找不到 bars');
+  const bars=o.bars.map(rows=>LANES.map((_,li)=>{
+    const s=String((rows&&rows[li])||'');
+    return Array.from({length:16},(_,i)=>{const ch=s[i];return ch&&ch!=='-'&&ch!=='.'&&ch!==' '?1:0;});
+  }));
+  const bpm=Math.min(300,Math.max(30,Number(o.bpm)||100));
+  const offset=Number.isFinite(Number(o.offset))?Number(o.offset):0;
+  return {bpm,offset,bars};
+}
+function toText(){
+  return '{\n"bpm":'+song.bpm+',\n"offset":'+song.offset+',\n"lanes":["CY銅鈸","HH踩鑔","T1高嗵","SN小鼓","FT低嗵","BD底鼓"],\n"bars":[\n'+
+    song.bars.map(b=>'  '+JSON.stringify(b.map(r=>r.map(v=>v?'x':'-').join('')))).join(',\n')+'\n]\n}';
+}
+function load(){try{const t=localStorage.getItem(KEY);if(t)return fromObj(JSON.parse(t));}catch(e){}return null;}
+function save(){try{localStorage.setItem(KEY,toText());}catch(e){}}
+
+let song=load()||sample();
+let notes=[],totalBeats=0;
+let audio=null;
+let playing=false,cur=0,baseT=0,basePerf=0,rate=1,audioTimer=null,raf=0;
+let loopOn=false,metOn=false,lastBeatInt=0;
+let editBar=0,undoStack=[],sliderDrag=false,ac=null;
+
+const beatSec=()=>60/song.bpm;
+const beatAt=t=>(t-song.offset)*song.bpm/60;
+const timeAt=b=>song.offset+b*beatSec();
+function rebuild(){
+  notes=[];
+  song.bars.forEach((b,bi)=>b.forEach((row,li)=>row.forEach((v,si)=>{if(v)notes.push({beat:bi*4+si/4,lane:li});})));
+  notes.sort((a,b)=>a.beat-b.beat||a.lane-b.lane);
+  totalBeats=song.bars.length*4;
+}
+function lowerBound(x){let lo=0,hi=notes.length;while(lo<hi){const m=(lo+hi)>>1;if(notes[m].beat<x)lo=m+1;else hi=m;}return lo;}
+function resetTime(){const f=notes.length?timeAt(notes[0].beat):song.offset;return Math.min(0,f-4*beatSec());}
+
+/* ---------- clock ---------- */
+function getTime(){
+  if(!playing)return cur;
+  if(audio&&!audio.paused&&audio.currentTime>0)return audio.currentTime;
+  return baseT+(performance.now()-basePerf)/1000*rate;
+}
+function ensureAC(){try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();}catch(e){}}
+function click(accent){
+  if(!ac)return;
+  try{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=accent?1600:1000;
+    g.gain.setValueAtTime(0.25,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.05);
+    o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+0.06);}catch(e){}
+}
+function startClock(){
+  playing=true;baseT=cur;basePerf=performance.now();lastBeatInt=Math.floor(beatAt(cur));
+  ensureAC();
+  if(audio){
+    audio.playbackRate=rate;
+    if(cur>=0){try{audio.currentTime=cur;}catch(e){}audio.play().catch(()=>{});}
+    else{
+      audio.play().then(()=>{audio.pause();audio.currentTime=0;}).catch(()=>{});
+      audioTimer=setTimeout(()=>{audio.currentTime=0;audio.play().catch(()=>{});},-cur/rate*1000);
+    }
+  }
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);
+  $('#btnPlay').textContent='⏸ 暫停';
+}
+function stopClock(){
+  cur=getTime();playing=false;clearTimeout(audioTimer);
+  if(audio)audio.pause();
+  cancelAnimationFrame(raf);
+  $('#btnPlay').textContent='▶ 播放';
+}
+function seekTime(t){
+  const was=playing;if(was)stopClock();
+  cur=t;
+  if(was)startClock();else{draw();}
+}
+function seekBar(n){
+  let t=timeAt((n-1)*4);
+  if(t<resetTime())t=resetTime();
+  seekTime(t);
+}
+function frame(){
+  if(!playing)return;
+  const t=getTime(),bp=beatAt(t);
+  if(loopOn){
+    const A=+$('#loopA').value||1,B=+$('#loopB').value||A;
+    if(bp>=Math.max(A,B)*4){seekBar(Math.min(A,B)-1);return;}
+  }
+  if(bp>totalBeats+2){stopClock();cur=resetTime();draw();return;}
+  const bi=Math.floor(bp);
+  if(metOn&&bi>lastBeatInt&&bi-lastBeatInt<=1)click((((bi%4)+4)%4)===0);
+  lastBeatInt=bi;
+  draw(t);
+  raf=requestAnimationFrame(frame);
+}
+
+/* ---------- canvas ---------- */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+function fit(){const d=window.devicePixelRatio||1;cv.width=Math.round(cv.clientWidth*d);cv.height=Math.round(cv.clientHeight*d);ctx.setTransform(d,0,0,d,0,0);}
+let lastNext='',lastBarLbl='';
+function draw(t){
+  if(t===undefined)t=getTime();
+  if(!cv.clientWidth)return;
+  if(cv.width!==Math.round(cv.clientWidth*(window.devicePixelRatio||1)))fit();
+  const bp=beatAt(t),W=cv.clientWidth,H=cv.clientHeight;
+  const labelW=54,hudH=30,laneH=(H-hudH)/6,hitX=labelW+(W-labelW)*0.2,ppb=(W-hitX)/7;
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<6;i++){ctx.fillStyle=i%2?'#161a22':'#1b202a';ctx.fillRect(0,hudH+i*laneH,W,laneH);}
+  ctx.save();ctx.beginPath();ctx.rect(labelW,hudH,W-labelW,H-hudH);ctx.clip();
+  const back=(hitX-labelW)/ppb,fwd=(W-hitX)/ppb;
+  for(let b=Math.floor(bp-back)-1;b<=Math.ceil(bp+fwd)+1;b++){
+    if(b<0||b>totalBeats)continue;
+    const x=hitX+(b-bp)*ppb,isBar=b%4===0;
+    ctx.strokeStyle=isBar?'#586178':'#2a3140';ctx.lineWidth=isBar?2:1;
+    ctx.beginPath();ctx.moveTo(x,hudH);ctx.lineTo(x,H);ctx.stroke();
+    if(isBar&&b<totalBeats){ctx.fillStyle='#9aa4ba';ctx.font='bold 12px sans-serif';ctx.textAlign='left';ctx.fillText(String(b/4+1),x+4,hudH+13);}
+  }
+  const r=Math.min(laneH*0.38,17);
+  ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;
+  for(let i=0;i<6;i++){ctx.beginPath();ctx.arc(hitX,hudH+(i+0.5)*laneH,r+2,0,7);ctx.stroke();}
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(hitX,hudH);ctx.lineTo(hitX,H);ctx.stroke();
+  const flash=[0,0,0,0,0,0];
+  for(let i=lowerBound(bp-back-0.6);i<notes.length&&notes[i].beat<=bp+fwd+0.6;i++){
+    const n=notes[i],x=hitX+(n.beat-bp)*ppb,y=hudH+(n.lane+0.5)*laneH,d=bp-n.beat;
+    if(d>0){if(d<0.3)flash[n.lane]=Math.max(flash[n.lane],1-d/0.3);ctx.globalAlpha=Math.max(0.12,0.45-d*0.6);}
+    else ctx.globalAlpha=1;
+    ctx.fillStyle=LANES[n.lane].c;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+  for(let i=0;i<6;i++){
+    const y=hudH+i*laneH;
+    ctx.fillStyle='#0f1218';ctx.fillRect(0,y,labelW,laneH);
+    if(flash[i]>0){ctx.globalAlpha=flash[i];ctx.fillStyle=LANES[i].c;ctx.fillRect(0,y,labelW,laneH);ctx.globalAlpha=1;}
+    ctx.fillStyle=LANES[i].c;ctx.fillRect(0,y,4,laneH);
+    ctx.fillStyle=flash[i]>0.5?'#111':'#e8ecf3';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(LANES[i].name,labelW/2+2,y+laneH/2);
+  }
+  ctx.textBaseline='alphabetic';
+  // HUD
+  ctx.fillStyle='#0f1218';ctx.fillRect(0,0,W,hudH);
+  const barIdx=Math.floor(bp/4);
+  let barTxt;
+  if(bp<0)barTxt='預備';else if(bp>=totalBeats)barTxt='結束';else barTxt=`第 ${barIdx+1} 小節 · 拍 ${Math.floor(bp-barIdx*4)+1}`;
+  ctx.fillStyle='#e8ecf3';ctx.font='bold 15px sans-serif';ctx.textAlign='left';ctx.fillText(barTxt,10,21);
+  ctx.fillStyle='#8b94a7';ctx.font='13px sans-serif';ctx.textAlign='right';ctx.fillText(`♩=${song.bpm}  ×${rate}`,W-10,21);
+  // next / rest / countdown
+  const nx=lowerBound(bp+0.001);
+  let info='完';
+  const mid=(W+labelW)/2,midY=hudH+(H-hudH)/2;
+  if(nx<notes.length){
+    const nb=notes[nx].beat,until=nb-bp;
+    let pv=nx-1;const prevBeat=pv>=0?notes[pv].beat:-Infinity;
+    const gapBefore=nb-prevBeat;
+    const names=[];for(let k=nx;k<notes.length&&notes[k].beat===nb;k++)names.push(LANES[notes[k].lane].name);
+    const nBar=Math.floor(nb/4),s=Math.round((nb-nBar*4)*4);
+    const pos=`${nBar+1}小節 ${Math.floor(s/4)+1}${['','e','&','a'][s%4]}`;
+    info=`下一擊：${names.join(' + ')}　→ 第${pos}`;
+    if(gapBefore>=3.5){
+      if(until<=4){
+        const n=Math.max(1,Math.ceil(until-1e-9));
+        ctx.font='bold 110px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText(String(n),mid,midY);ctx.textBaseline='alphabetic';
+      }else{
+        const cb=Math.max(0,Math.floor(bp/4)),left=nBar-cb;
+        const txt=`休止　${left} 小節後進場（第${nBar+1}小節）`;
+        ctx.font='bold 15px sans-serif';const w=ctx.measureText(txt).width+24;
+        ctx.fillStyle='rgba(255,154,60,.9)';ctx.beginPath();ctx.roundRect?ctx.roundRect(mid-w/2,hudH+8,w,28,14):ctx.rect(mid-w/2,hudH+8,w,28);ctx.fill();
+        ctx.fillStyle='#111';ctx.textAlign='center';ctx.fillText(txt,mid,hudH+27);
+      }
+    }
+  }
+  // GO!
+  {const pv=nx-1;
+   if(pv>=0&&bp-notes[pv].beat<0.6&&bp-notes[pv].beat>=0){
+     let pp=pv;while(pp>=0&&notes[pp].beat===notes[pv].beat)pp--;
+     const gp=pp>=0?notes[pv].beat-notes[pp].beat:Infinity;
+     if(gp>=3.5){ctx.font='bold 80px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+       ctx.fillStyle=`rgba(255,154,60,${Math.max(0,1-(bp-notes[pv].beat)/0.6)})`;ctx.fillText('打！',mid,midY);ctx.textBaseline='alphabetic';}
+   }}
+  if(info!==lastNext){lastNext=info;$('#nextInfo').textContent=info;}
+  const bl=bp<0?'預備':`第 ${Math.min(song.bars.length,Math.max(1,barIdx+1))} 小節`;
+  if(bl!==lastBarLbl){lastBarLbl=bl;$('#barLive').textContent=bl;}
+  if(!sliderDrag)$('#sl').value=Math.min(song.bars.length-1,Math.max(0,barIdx));
+}
+
+/* ---------- editor ---------- */
+const barHas=b=>b.some(r=>r.some(v=>v));
+function pushUndo(){undoStack.push(JSON.stringify(song));if(undoStack.length>30)undoStack.shift();}
+function commit(){
+  rebuild();save();
+  editBar=Math.min(editBar,song.bars.length-1);
+  renderEditor();updateBounds();
+  $('#bpm').value=song.bpm;$('#off').value=song.offset;
+  draw();
+}
+function updateBounds(){
+  $('#sl').max=Math.max(0,song.bars.length-1);
+  ['#loopA','#loopB'].forEach(s=>{$(s).max=song.bars.length;});
+}
+function renderEditor(){
+  const bar=song.bars[editBar];
+  $('#barLbl').textContent=`第 ${editBar+1} / ${song.bars.length} 小節`;
+  let h='';
+  for(let half=0;half<2;half++){
+    h+='<div class="half"><div></div>';
+    for(let i=0;i<8;i++){const s=half*8+i;h+=`<div class="hd${s%4===0?' b':''}">${s%4===0?(s/4+1):['','e','&','a'][s%4]}</div>`;}
+    LANES.forEach((L,li)=>{
+      h+=`<button class="lab" data-lane="${li}" style="--c:${L.c}">${L.name}</button>`;
+      for(let i=0;i<8;i++){const s=half*8+i;
+        h+=`<button class="cell${bar[li][s]?' on':''}${s%4===0?' b':''}" data-lane="${li}" data-step="${s}" style="--c:${L.c}"></button>`;}
+    });
+    h+='</div>';
+  }
+  $('#grid').innerHTML=h;
+  $('#chips').innerHTML=song.bars.map((b,i)=>`<button class="chip${barHas(b)?' has':''}${i===editBar?' cur':''}" data-bar="${i}">${i+1}</button>`).join('');
+}
+$('#grid').addEventListener('click',e=>{
+  const el=e.target.closest('button');if(!el)return;
+  const li=+el.dataset.lane,bar=song.bars[editBar];
+  pushUndo();
+  if(el.classList.contains('cell')){bar[li][+el.dataset.step]^=1;}
+  else{
+    const row=bar[li],pat=k=>row.every((v,i)=>v===(i%k===0?1:0));
+    if(row.every(v=>!v))for(let i=0;i<16;i++)row[i]=i%4===0?1:0;
+    else if(pat(4))for(let i=0;i<16;i++)row[i]=i%2===0?1:0;
+    else if(pat(2))row.fill(1);
+    else row.fill(0);
+  }
+  commit();
+});
+$('#chips').addEventListener('click',e=>{const el=e.target.closest('.chip');if(!el)return;editBar=+el.dataset.bar;renderEditor();});
+$('#bPrev').onclick=()=>{editBar=Math.max(0,editBar-1);renderEditor();};
+$('#bNext').onclick=()=>{
+  if(editBar>=song.bars.length-1){pushUndo();song.bars.push(mkBar());}
+  editBar++;commit();
+};
+$('#bCopy').onclick=()=>{if(editBar<1)return;pushUndo();song.bars[editBar]=song.bars[editBar-1].map(r=>r.slice());commit();};
+$('#bClear').onclick=()=>{pushUndo();song.bars[editBar]=mkBar();commit();};
+$('#bIns').onclick=()=>{pushUndo();song.bars.splice(editBar+1,0,mkBar());editBar++;commit();};
+$('#bDel').onclick=()=>{if(song.bars.length<2)return;pushUndo();song.bars.splice(editBar,1);commit();};
+$('#bUndo').onclick=()=>{if(!undoStack.length)return;song=fromObj(JSON.parse(undoStack.pop()));commit();};
+$('#bTry').onclick=()=>{showView('play');if(playing)stopClock();seekBar(editBar+1);startClock();};
+
+/* ---------- transport / controls ---------- */
+$('#btnPlay').onclick=()=>{
+  if(playing){stopClock();draw();return;}
+  if(cur>=timeAt(totalBeats)+1)cur=resetTime();
+  startClock();
+};
+$('#btnReset').onclick=()=>{seekTime(resetTime());};
+$('#selRate').onchange=e=>{
+  rate=+e.target.value;
+  const was=playing;if(was)stopClock();
+  if(audio)audio.playbackRate=rate;
+  if(was)startClock();else draw();
+};
+$('#sl').addEventListener('pointerdown',()=>{sliderDrag=true;});
+$('#sl').addEventListener('input',e=>{$('#barLive').textContent=`第 ${+e.target.value+1} 小節`;});
+$('#sl').addEventListener('change',e=>{sliderDrag=false;seekBar(+e.target.value+1);});
+$('#loopOn').onchange=e=>{loopOn=e.target.checked;};
+$('#metOn').onchange=e=>{metOn=e.target.checked;ensureAC();};
+$('#bpm').onchange=e=>{song.bpm=Math.min(300,Math.max(30,+e.target.value||song.bpm));commit();};
+$('#off').onchange=e=>{song.offset=+e.target.value||0;commit();};
+document.querySelectorAll('[data-off]').forEach(b=>b.onclick=()=>{song.offset=Math.round((song.offset+ +b.dataset.off)*100)/100;commit();});
+$('#mark').onclick=()=>{song.offset=Math.round(getTime()*100)/100;commit();};
+let taps=[];
+$('#tap').onclick=()=>{
+  const n=performance.now();
+  if(taps.length&&n-taps[taps.length-1]>2000)taps=[];
+  taps.push(n);if(taps.length>7)taps.shift();
+  if(taps.length>=2){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);song.bpm=Math.round(60000/iv*10)/10;commit();}
+};
+
+/* ---------- audio file ---------- */
+$('#file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(playing)stopClock();
+  if(audio){audio.pause();URL.revokeObjectURL(audio.src);}
+  audio=new Audio(URL.createObjectURL(f));
+  audio.preservesPitch=true;audio.webkitPreservesPitch=true;audio.preload='auto';
+  audio.addEventListener('loadedmetadata',()=>{
+    const m=Math.floor(audio.duration/60),s=Math.round(audio.duration%60);
+    $('#fileInfo').textContent=`已載入：${f.name}（${m}:${String(s).padStart(2,'0')}）。到「播放」頁按播放；譜跟音樂對不上時，用「對拍調整」。`;
+    $('#audioLive').textContent='♪ '+f.name;
+  });
+  audio.addEventListener('error',()=>{$('#fileInfo').textContent='這個檔案無法播放，請換 mp3 / m4a / wav。';});
+  seekTime(resetTime());
+};
+$('#rmAudio').onclick=()=>{
+  if(playing)stopClock();
+  if(audio){audio.pause();URL.revokeObjectURL(audio.src);audio=null;}
+  $('#fileInfo').textContent='已移除音樂。';$('#audioLive').textContent='無音樂（用內建計時）';
+};
+
+/* ---------- data io ---------- */
+$('#exp').onclick=()=>{$('#ta').value=toText();$('#msg').textContent='';};
+$('#copy').onclick=async()=>{
+  $('#ta').value=toText();
+  try{await navigator.clipboard.writeText($('#ta').value);$('#msg').textContent='已複製。';}
+  catch(e){$('#ta').select();$('#msg').textContent='請手動全選複製。';}
+};
+$('#imp').onclick=()=>{
+  try{const s=fromObj(JSON.parse($('#ta').value));pushUndo();song=s;editBar=0;commit();$('#msg').textContent=`已匯入 ${song.bars.length} 小節。`;}
+  catch(e){$('#msg').textContent='匯入失敗：'+e.message;}
+};
+$('#sample').onclick=()=>{pushUndo();song=sample();editBar=0;commit();$('#ta').value=toText();$('#msg').textContent='已還原範例。';};
+
+/* ---------- tabs ---------- */
+function showView(v){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+  if(v==='play'){fit();draw();}
+  if(v==='song')$('#ta').value=toText();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>showView(b.dataset.v));
+window.addEventListener('resize',()=>{fit();draw();});
+
+rebuild();cur=resetTime();commit();fit();draw();
+})();
+</script>
+</body>
+</html>

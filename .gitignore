@@ -1,0 +1,5 @@
+# Teacher's scores are copyrighted, personal use only — never commit
+samples/
+songs/
+*.pdf
+.DS_Store
